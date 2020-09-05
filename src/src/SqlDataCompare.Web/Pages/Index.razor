@@ -1,27 +1,25 @@
 ﻿@page "/"
 
-<h1>Hello, world!</h1>
+    <h1>Hello, world!</h1>
 
-Welcome to your new app.
-
-<SurveyPrompt Title="How is Blazor working for you?" />
+    Welcome to your new app.
 
 <textarea @bind="textInput" style="height: 15rem" type="text" class="form-control" placeholder="some sql..." />
-<button class="btn" @onclick="Parse">Parse Input</button>
-@if (parseResult is Validation v)
-{
-    <p>Valid: @v.Valid</p>
-    <p>Message: @v.Message</p>
-}
-
-@code{
-    private string textInput = string.Empty;
-    private Validation? parseResult;
-
-    private void Parse()
+    <button class="btn" @onclick="Parse">Parse Input</button>
+    @if (parseResult is Validation v)
     {
-        var a = new SafeSqlValidator();
-        var res = a.ValidateIsSafe(textInput);
-        parseResult = res;
+        <p>Valid: @v.Valid</p>
+        <p>Message: @v.Message</p>
     }
-}
+
+    @code{
+        private string textInput = string.Empty;
+        private Validation? parseResult;
+
+        private void Parse()
+        {
+            var a = new SafeSqlValidator();
+            var res = a.ValidateIsSafe(textInput);
+            parseResult = res;
+        }
+    }
