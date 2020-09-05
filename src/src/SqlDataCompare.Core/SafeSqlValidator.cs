@@ -10,16 +10,89 @@ using Microsoft.SqlServer.Management.SqlParser.SqlCodeDom;
 
 namespace SqlDataCompare.Core
 {
-    public class SafeSqlValidator
+    public static class SafeSqlValidator
     {
-        public static SqlStatement GetFirstSqlStatement(string sql)
+        public static Validation ParseAndValidate(string sql)
+        {
+            return ValidateIsSafe(sql);
+        }
+
+        internal static SqlStatement GetFirstSqlStatement(string sql)
         {
             var parseResult = Parser.Parse(sql);
 
             return parseResult.Script.Batches[0].Statements[0];
         }
 
-        public Validation ValidateIsSafe(string sql)
+        internal static bool TryParseSelectColumns(SqlStatement statement, out string[] columns)
+        {
+            var colList = new List<string>();
+            columns = colList.ToArray();
+
+            var xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml(statement.Xml);
+
+            //Narrow to only the Select. There otherwise could be a CTE or something else containing SqlSelectClause
+            try
+            {
+                xmlDoc.LoadXml(xmlDoc.GetElementsByTagName("SqlSelectSpecification")[0].OuterXml);
+            }
+            catch
+            {
+                return false; //No select
+            }
+
+            var select = xmlDoc.GetElementsByTagName("SqlSelectClause");
+            if (select.Count == 0)
+            {
+                return false;
+            }
+            xmlDoc.LoadXml(select[0].OuterXml.ToString());
+
+            foreach (XmlNode node in select[0].ChildNodes)
+            {
+                if (node.Name == "SqlSelectScalarExpression")
+                {
+                    string alias = node.Attributes["Alias"]?.Value;
+                    if (alias != null)
+                    {
+                        colList.Add(alias);
+                        continue;
+                    }
+                    else
+                    {
+                        var col = node.FirstChild.NextSibling.Attributes["ColumnOrPropertyName"]?.Value;
+
+                        if (col != null)
+                        {
+                            colList.Add(col);
+                            continue;
+                        }
+
+                        col = node.FirstChild.NextSibling.Attributes["ColumnName"]?.Value;
+
+                        if (col != null)
+                        {
+                            colList.Add(col);
+                            continue;
+                        }
+
+                        colList.Add(null);
+                        continue;
+                    }
+                }
+                else if (node.Name == "SqlSelectStarExpression")
+                {
+                    colList.Add("*");
+                    continue;
+                }
+            }
+
+            columns = colList.ToArray();
+            return true;
+        }
+
+        internal static Validation ValidateIsSafe(string sql)
         {
             var parseResult = Parser.Parse(sql);
             var val = new Validation(false, "Unknown");
@@ -60,7 +133,7 @@ namespace SqlDataCompare.Core
             return val;
         }
 
-        public Validation ValidateSingleResultSet(string sql)
+        internal static Validation ValidateSingleResultSet(string sql)
         {
             var parseResult = Parser.Parse(sql);
             var val = new Validation(false, "Unknown");
@@ -98,16 +171,16 @@ namespace SqlDataCompare.Core
             return new Validation(selectCount == 1, selectCount == 1 ? "Single Select" : $"{selectCount} Selects");
         }
 
-        public List<QueryColumn> GetLastSelectQueryColumns(string sql)
+        internal static List<QueryColumn> GetLastSelectQueryColumns(string sql)
         {
             var parseResult = Parser.Parse(sql);
             var lastStatement = parseResult.Script.Batches.Last().Statements.Last();
-            if (lastStatement.TryParseSelectColumns(out string[] cols) == false)
+            if (TryParseSelectColumns(lastStatement, out string[] cols) == false)
             {
                 throw new ArgumentException("SQL coudln't be parsed");
             }
 
-            return cols.Select(x => new QueryColumn(x, false, 0)).ToList();
+            return cols.Select(x => new QueryColumn(x, false, 0, true)).ToList();
         }
 
         private static bool IsPlainSelect(SqlStatement statement)
@@ -128,23 +201,26 @@ namespace SqlDataCompare.Core
 
         private static Validation SelectColumnsAreNamed(SqlStatement statement)
         {
-            if (statement.TryParseSelectColumns(out string[] cols))
+            if (TryParseSelectColumns(statement, out string[] cols))
             {
                 if (cols.Length == 0)
                 {
                     return new Validation(false, "Could not find any column names for statement");
                 }
+
                 foreach (var col in cols)
                 {
                     if (col == "*")
                     {
                         return new Validation(false, "Error - Select is not comparable because at least one * is used in statement");
                     }
+
                     if (col == null)
                     {
                         return new Validation(false, "Error - Select is not comparable because at least column is unnamed in statement");
                     }
                 }
+
                 return new Validation(true, "All columns have names");
             }
             else
@@ -165,7 +241,7 @@ namespace SqlDataCompare.Core
                 case "SqlSelectStatement":
                     if (TryParseFirstTagAttribute(xmlDoc, "SqlSelectIntoClause", "IntoTarget", out string selectIntoTarget))
                     {
-                        if (selectIntoTarget.Contains('#') == false)
+                        if (selectIntoTarget.Contains('#', StringComparison.InvariantCultureIgnoreCase) == false)
                         {
                             return new Validation(false, "Select Into a real table");
                         }
@@ -179,7 +255,7 @@ namespace SqlDataCompare.Core
                     var delete = xmlDoc.GetElementsByTagName("SqlDeleteStatement")[0];
                     if (TryParseFirstTagAttribute(xmlDoc, "SqlIdentifier", "Value", out string deleteTarget))
                     {
-                        if (deleteTarget.Contains('#') == false)
+                        if (deleteTarget.Contains('#', StringComparison.InvariantCultureIgnoreCase) == false)
                         {
                             return new Validation(false, "Delete from a real table");
                         }
@@ -193,7 +269,7 @@ namespace SqlDataCompare.Core
                     var drop = xmlDoc.GetElementsByTagName("SqlDropTableStatement")[0];
                     if (TryParseFirstTagAttribute(xmlDoc, "SqlIdentifier", "Value", out string dropTarget))
                     {
-                        if (dropTarget.Contains('#') == false)
+                        if (dropTarget.Contains('#', StringComparison.InvariantCultureIgnoreCase) == false)
                         {
                             return new Validation(false, "Drop a real table");
                         }
@@ -207,7 +283,7 @@ namespace SqlDataCompare.Core
                     var update = xmlDoc.GetElementsByTagName("SqlUpdateStatement")[0];
                     if (TryParseFirstTagAttribute(xmlDoc, "SqlIdentifier", "Value", out string updateTarget))
                     {
-                        if (updateTarget.Contains('#') == false)
+                        if (updateTarget.Contains('#', StringComparison.InvariantCultureIgnoreCase) == false)
                         {
                             return new Validation(false, "Update a real table");
                         }
@@ -221,7 +297,7 @@ namespace SqlDataCompare.Core
                     var insert = xmlDoc.GetElementsByTagName("SqlInsertStatement")[0];
                     if (TryParseFirstTagAttribute(xmlDoc, "SqlIdentifier", "Value", out string insertTarget))
                     {
-                        if (insertTarget.Contains('#') == false)
+                        if (insertTarget.Contains('#', StringComparison.InvariantCultureIgnoreCase) == false)
                         {
                             return new Validation(false, "Update a real table");
                         }

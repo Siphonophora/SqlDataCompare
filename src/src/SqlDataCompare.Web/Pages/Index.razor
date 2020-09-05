@@ -1,25 +1,9 @@
 ﻿@page "/"
 
-    <h1>Hello, world!</h1>
+    <h1>Sql Data Compare!</h1>
+    <p>1. Enter two queries</p>
+    <p>2. Select the Keys</p>
+    <p>3. Copy the comparison script.</p>
 
-    Welcome to your new app.
-
-<textarea @bind="textInput" style="height: 15rem" type="text" class="form-control" placeholder="some sql..." />
-    <button class="btn" @onclick="Parse">Parse Input</button>
-    @if (parseResult is Validation v)
-    {
-        <p>Valid: @v.Valid</p>
-        <p>Message: @v.Message</p>
-    }
-
-    @code{
-        private string textInput = string.Empty;
-        private Validation? parseResult;
-
-        private void Parse()
-        {
-            var a = new SafeSqlValidator();
-            var res = a.ValidateIsSafe(textInput);
-            parseResult = res;
-        }
-    }
+    <SqlInput Title="Assert Sql" />
+    <SqlInput Title="Test Sql" />

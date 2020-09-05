@@ -1,0 +1,23 @@
+﻿<h5>@Title</h5>
+<textarea @onchange="OnSqlUpdated" style="height: 15rem" type="text" class="form-control" placeholder="Enter Some sql..." />
+
+<p>Valid: @parseResult.Valid</p>
+<p>Message: @parseResult.Message</p>
+
+@code{
+    private string textInput = string.Empty;
+    private Validation parseResult = new Validation(false, "Enter Some SQL");
+
+    [Parameter] public string Title { get; set; }
+
+    private void OnSqlUpdated(ChangeEventArgs e)
+    {
+        textInput = e.Value.ToString();
+        if (string.IsNullOrWhiteSpace(textInput))
+        {
+            parseResult = new Validation(false, "Enter Some SQL");
+        }
+
+        parseResult = SafeSqlValidator.ParseAndValidate(textInput);
+    }
+}

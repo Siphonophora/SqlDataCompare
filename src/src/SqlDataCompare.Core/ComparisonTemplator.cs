@@ -71,7 +71,8 @@ namespace SqlDataCompare.Core
             var outputTables = new List<string>();
 
             //Get the Select Columns and create the ordered list of columns.
-            if (Parser.Parse(assertSql).Script.Batches.Last().Statements.Last().TryParseSelectColumns(out string[] columns) == false)
+            var statement = Parser.Parse(assertSql).Script.Batches.Last().Statements.Last();
+            if (SafeSqlValidator.TryParseSelectColumns(statement, out string[] columns) == false)
             {
                 throw new ArgumentException("Somehow provided SQL which couldn't parse columns");
             }
