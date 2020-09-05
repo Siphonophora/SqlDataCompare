@@ -1,5 +1,6 @@
 ﻿<h5>@Title</h5>
-<textarea @onchange="OnSqlUpdated" style="height: 15rem" type="text" class="form-control" placeholder="Enter Some sql..." />
+<textarea @bind-value="textInput" @bind-value:event="oninput" @onkeyup="@HandleKeyUp"
+          style="height: 15rem" type="text" class="form-control" placeholder="Enter Some sql..." />
 
 <p>Valid: @parseResult.Valid</p>
 <p>Message: @parseResult.Message</p>
@@ -7,17 +8,35 @@
 @code{
     private string textInput = string.Empty;
     private Validation parseResult = new Validation(false, "Enter Some SQL");
+    private System.Timers.Timer debounceTimer = new System.Timers.Timer(1000);
 
-    [Parameter] public string Title { get; set; }
+    [Parameter] public string Title { get; set; } = string.Empty;
 
-    private void OnSqlUpdated(ChangeEventArgs e)
+    protected override void OnInitialized()
     {
-        textInput = e.Value.ToString();
-        if (string.IsNullOrWhiteSpace(textInput))
-        {
-            parseResult = new Validation(false, "Enter Some SQL");
-        }
+        debounceTimer.Elapsed += OnUserFinish;
+        debounceTimer.AutoReset = false;
+    }
 
-        parseResult = SafeSqlValidator.ParseAndValidate(textInput);
+    private void HandleKeyUp(KeyboardEventArgs e)
+    {
+        debounceTimer.Stop();
+        debounceTimer.Start();
+    }
+
+    private void OnUserFinish(Object source, System.Timers.ElapsedEventArgs e)
+    {
+        InvokeAsync(() =>
+        {
+            if (string.IsNullOrWhiteSpace(textInput))
+            {
+                parseResult = new Validation(false, "Enter Some SQL");
+            }
+            else
+            {
+                parseResult = SafeSqlValidator.ParseAndValidate(textInput);
+            }
+            StateHasChanged();
+        });
     }
 }
