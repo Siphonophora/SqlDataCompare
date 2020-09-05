@@ -38,4 +38,8 @@
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SqlDataCompare.Core\SqlDataCompare.Core.csproj" />
+  </ItemGroup>
+
 </Project>
