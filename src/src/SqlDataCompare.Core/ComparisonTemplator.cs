@@ -9,23 +9,32 @@ namespace SqlDataCompare.Core
 {
     public class ComparisonTemplator
     {
-        private enum ErrorType { Fatal, Warning }
+        private enum ErrorType
+        {
+            Fatal,
+            Warning,
+        }
 
         public StringBuilder DropTable { get; set; } = new StringBuilder();
 
-        public string Create(string assertSql, string testSql, string[] keys, bool addIntoStatement)
+        public string Create(string assertSql, string testSql, IEnumerable<QueryColumn> queryColumns, bool addIntoStatement)
         {
             assertSql = assertSql ?? throw new ArgumentNullException(nameof(assertSql));
             testSql = testSql ?? throw new ArgumentNullException(nameof(testSql));
 
             DropTable.Clear();
-            string assertTable = "#Assert";
-            string testTable = "#Test";
-            string matchedTable = "#Matched";
-            string discrepantTable = "#Discrepant";
-            string extraTable = "#Extra";
-            string missingTable = "#Missing";
-            string commaKeys = string.Join(", ", keys);
+            var assertTable = "#Assert";
+            var testTable = "#Test";
+            var matchedTable = "#Matched";
+            var discrepantTable = "#Discrepant";
+            var extraTable = "#Extra";
+            var missingTable = "#Missing";
+
+            // TODO sort the keys and columns appropately.
+            var keys = queryColumns.Where(x => x.IsKey).Select(x => x.ColumnName);
+            var commaKeys = string.Join(", ", keys);
+            var columns = queryColumns.Where(x => !x.IsKey).Select(x => x.ColumnName);
+            var commaColuns = string.Join(", ", columns);
 
             var template = new StringBuilder();
 
@@ -70,15 +79,6 @@ namespace SqlDataCompare.Core
             template.AppendLine(CreateSummaryTable());
             var outputTables = new List<string>();
 
-            //Get the Select Columns and create the ordered list of columns.
-            var statement = Parser.Parse(assertSql).Script.Batches.Last().Statements.Last();
-            if (SafeSqlValidator.TryParseSelectColumns(statement, out string[] columns) == false)
-            {
-                throw new ArgumentException("Somehow provided SQL which couldn't parse columns");
-            }
-            columns = columns.Where(x => keys.Contains(x) == false).ToArray();
-            string commaColumns = string.Join(", ", columns);
-
             string assert = "Assert";
             string test = "Test";
 
@@ -99,7 +99,7 @@ namespace SqlDataCompare.Core
             template.AppendLine($"Into {missingTable}");
             template.AppendLine($"From {assertTable} {assert}                ");
             template.AppendLine($"Left Join {testTable} {test} on {JoinON(assert, test, keys)} ");
-            template.AppendLine($"Where {test}.{keys[0]} IS NULL");
+            template.AppendLine($"Where {test}.{keys.First()} IS NULL");
 
             DropTempTableIfExists(extraTable);
             outputTables.Add(extraTable);
@@ -108,7 +108,7 @@ namespace SqlDataCompare.Core
             template.AppendLine($"Into {extraTable}");
             template.AppendLine($"From {testTable} {test}                ");
             template.AppendLine($"Left Join {assertTable} {assert} on {JoinON(assert, test, keys)} ");
-            template.AppendLine($"Where {assert}.{keys[0]} IS NULL");
+            template.AppendLine($"Where {assert}.{keys.First()} IS NULL");
             template.AppendLine();
 
             DropTempTableIfExists(discrepantTable);
@@ -158,12 +158,12 @@ namespace SqlDataCompare.Core
             return result;
         }
 
-        private object AliasColumns(string alias, string[] columns, bool simpleName = false)
+        private static object AliasColumns(string alias, IEnumerable<string> columns, bool simpleName = false)
         {
-            return string.Join("\r\n     , ", columns.Select(x => $"{alias}.{x} {(simpleName ? "" : $"[{alias} {x}]")}"));
+            return string.Join("\r\n     , ", columns.Select(x => $"{alias}.{x} {(simpleName ? string.Empty : $"[{alias} {x}]")}"));
         }
 
-        private string SummarizeOutputs(List<string> outputTables, string commakeys)
+        private static string SummarizeOutputs(List<string> outputTables, string commakeys)
         {
             var summarize = new StringBuilder();
 
@@ -193,29 +193,80 @@ namespace SqlDataCompare.Core
             return summarize.ToString();
         }
 
-        private string JoinON(string aliasA, string aliasB, string[] keys)
+        private static string JoinON(string aliasA, string aliasB, IEnumerable<string> keys)
         {
             return string.Join(" and ", keys.Select(x => $"{aliasA}.{x} = {aliasB}.{x}"));
         }
 
-        private string WhereMatch(string aliasA, string aliasB, string[] compareColumns)
+        private static string WhereMatch(string aliasA, string aliasB, IEnumerable<string> compareColumns)
         {
             return string.Join("\r\n  and ", compareColumns.Select(x => $"(({aliasA}.{x} = {aliasB}.{x}) ".PadRight(70, ' ') + $"OR ({aliasA}.{x} IS NULL and {aliasB}.{x} IS NULL))"));
         }
 
-        private string WhereNull(string[] columns)
+        private static string WhereNull(IEnumerable<string> columns)
         {
             return string.Join(" or ", columns.Select(x => $"{x} IS NULL"));
         }
 
-        private string WhereNotMatch(string aliasA, string aliasB, string[] compareColumns)
+        private static string WhereNotMatch(string aliasA, string aliasB, IEnumerable<string> compareColumns)
         {
             return string.Join("\r\n  and ", compareColumns.Select(x => $"(({aliasA}.{x} <> {aliasB}.{x}) ".PadRight(70, ' ') + $"OR ({aliasA}.{x} IS NULL and {aliasB}.{x} IS NOT NULL) OR ({aliasA}.{x} IS NOT NULL and {aliasB}.{x} IS NULL))"));
         }
 
-        private string CompareColumns(string aliasA, string aliasB, string[] compareColumns)
+        private static string CompareColumns(string aliasA, string aliasB, IEnumerable<string> compareColumns)
         {
             return string.Join("\r\n     , ", compareColumns.Select(x => $"{aliasA}.{x} [{aliasA} {x}]".PadRight(80, ' ') + $", {aliasB}.{x} [{aliasB} {x}]"));
+        }
+
+        private static string UpdateStat(string table, string stat, string param)
+        {
+            var updateStat = new StringBuilder();
+
+            updateStat.AppendLine($"Update #Stats Set {stat} = {param} where TableName = '{table}'");
+
+            return updateStat.ToString();
+        }
+
+        private static string HaltOnErrors(string assertTable, string testTable, IEnumerable<string> keys)
+        {
+            var halt = new StringBuilder();
+
+            halt.AppendLine();
+            halt.AppendLine("Select @ErrorCount = count(*) From #Errors Where Fatal = 1");
+            halt.AppendLine($"IF @ErrorCount > 0");
+            halt.AppendLine("Begin");
+            halt.AppendLine($"    RAISERROR('One or more fatal errors occured. Please see output errors table',16,1)");
+            halt.AppendLine("End");
+            halt.AppendLine();
+
+            return halt.ToString();
+        }
+
+        private static string SelectTable(string table, string label, string? orderBy = null)
+        {
+            var select = new StringBuilder();
+
+            select.AppendLine($"Select '{label}' [{label}], * From {table} {(orderBy == null ? string.Empty : $"Order By {orderBy}")}");
+
+            return select.ToString();
+        }
+
+        private static string IfConditionInsertError(string condition, bool fatal, ErrorType errorType, string message, string extraStatements = null)
+        {
+            var conditionalInsert = new StringBuilder();
+
+            conditionalInsert.AppendLine();
+            conditionalInsert.AppendLine($"IF {condition}");
+            conditionalInsert.AppendLine("Begin");
+            conditionalInsert.AppendLine("     Insert Into #Errors (Fatal, ErrorType, ErrorInfo)");
+            conditionalInsert.AppendLine($"     Values( {(fatal ? "1" : "0")} , '{Enum.GetName(typeof(ErrorType), errorType)}' , '{message}' )");
+            if (extraStatements != null)
+            {
+                conditionalInsert.AppendLine(extraStatements);
+            }
+            conditionalInsert.AppendLine("End");
+
+            return conditionalInsert.ToString();
         }
 
         private string CreateErrorsTable()
@@ -262,40 +313,7 @@ namespace SqlDataCompare.Core
             return summary.ToString();
         }
 
-        private string UpdateStat(string table, string stat, string param)
-        {
-            var updateStat = new StringBuilder();
-
-            updateStat.AppendLine($"Update #Stats Set {stat} = {param} where TableName = '{table}'");
-
-            return updateStat.ToString();
-        }
-
-        private string HaltOnErrors(string assertTable, string testTable, string[] keys)
-        {
-            var halt = new StringBuilder();
-
-            halt.AppendLine();
-            halt.AppendLine("Select @ErrorCount = count(*) From #Errors Where Fatal = 1");
-            halt.AppendLine($"IF @ErrorCount > 0");
-            halt.AppendLine("Begin");
-            halt.AppendLine($"    RAISERROR('One or more fatal errors occured. Please see output errors table',16,1)");
-            halt.AppendLine("End");
-            halt.AppendLine();
-
-            return halt.ToString();
-        }
-
-        private string SelectTable(string table, string label, string orderBy = null)
-        {
-            var select = new StringBuilder();
-
-            select.AppendLine($"Select '{label}' [{label}], * From {table} {(orderBy == null ? "" : $"Order By {orderBy}")}");
-
-            return select.ToString();
-        }
-
-        private string CalculateStats(string table, string[] keys)
+        private string CalculateStats(string table, IEnumerable<string> keys)
         {
             var stats = new StringBuilder();
             var commaKeys = string.Join(", ", keys);
@@ -378,24 +396,6 @@ namespace SqlDataCompare.Core
             statements.AppendLine(UpdateStat(intoTable, "DurationMS", duration));
 
             return statements.ToString();
-        }
-
-        private string IfConditionInsertError(string condition, bool fatal, ErrorType errorType, string message, string extraStatements = null)
-        {
-            var conditionalInsert = new StringBuilder();
-
-            conditionalInsert.AppendLine();
-            conditionalInsert.AppendLine($"IF {condition}");
-            conditionalInsert.AppendLine("Begin");
-            conditionalInsert.AppendLine("     Insert Into #Errors (Fatal, ErrorType, ErrorInfo)");
-            conditionalInsert.AppendLine($"     Values( {(fatal ? "1" : "0")} , '{Enum.GetName(typeof(ErrorType), errorType)}' , '{message}' )");
-            if (extraStatements != null)
-            {
-                conditionalInsert.AppendLine(extraStatements);
-            }
-            conditionalInsert.AppendLine("End");
-
-            return conditionalInsert.ToString();
         }
 
         private class ParamNamer

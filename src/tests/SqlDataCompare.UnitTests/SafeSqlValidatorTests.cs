@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.SqlServer.Management.SqlParser.Parser;
+using Microsoft.SqlServer.Management.SqlParser.SqlCodeDom;
 using NUnit.Framework;
 using SqlDataCompare.Core;
 
@@ -22,10 +24,10 @@ namespace SqlDataCompare.UnitTests
         [TestCase("UPDATE #Alert_ProgramsTemp SET [Program] = 'b' WHERE 1 = 0")]
         public void ValidateIsSafe_SingleStatement_IsSafe(string sql)
         {
-            var result = SafeSqlValidator.ValidateIsSafe(sql);
+            var result = ComparableSqlParser.IsSafe(sql);
 
             Assert.IsTrue(result.Valid);
-            Assert.IsNotEmpty(result.Message);
+            Assert.IsNotEmpty(result.ValidationMessage);
         }
 
         [TestCase("Delete from t")]
@@ -35,26 +37,26 @@ namespace SqlDataCompare.UnitTests
         [TestCase("UPDATE [dbo].[Alert_ProgramsTemp] SET [Program] = 'b' WHERE 1 = 0")]
         public void ValidateIsSafe_SingleStatement_NotSafe(string sql)
         {
-            var result = SafeSqlValidator.ValidateIsSafe(sql);
+            var result = ComparableSqlParser.IsSafe(sql);
 
             Assert.IsFalse(result.Valid);
-            Assert.IsNotEmpty(result.Message);
+            Assert.IsNotEmpty(result.ValidationMessage);
         }
 
         [TestCase("Delete from")]
         [TestCase("Select * InFrom Temp")]
         public void ValidateIsSafe_SingleStatement_SqlError(string sql)
         {
-            var result = SafeSqlValidator.ValidateIsSafe(sql);
+            var result = ComparableSqlParser.IsSafe(sql);
 
             Assert.IsFalse(result.Valid);
-            Assert.IsTrue(result.Message.StartsWith("Sql Has Errors"));
+            Assert.IsTrue(result.ValidationMessage.StartsWith("Sql Has Errors"));
         }
 
         [TestCase("DropTable T")]
         public void ValidateIsSafe_SingleStatement_NotSQL(string sql)
         {
-            var result = SafeSqlValidator.ValidateIsSafe(sql);
+            var result = ComparableSqlParser.IsSafe(sql);
 
             Assert.IsFalse(result.Valid);
         }
@@ -67,10 +69,10 @@ namespace SqlDataCompare.UnitTests
         {
             string sql = string.Join("\r\n", sqlArray);
 
-            var result = SafeSqlValidator.ValidateIsSafe(sql);
+            var result = ComparableSqlParser.IsSafe(sql);
 
             Assert.IsTrue(result.Valid);
-            Assert.IsNotEmpty(result.Message);
+            Assert.IsNotEmpty(result.ValidationMessage);
         }
 
         [TestCase("Select * From  T", "Delete From  T")]
@@ -79,10 +81,10 @@ namespace SqlDataCompare.UnitTests
         {
             string sql = string.Join("\r\n", sqlArray);
 
-            var result = SafeSqlValidator.ValidateIsSafe(sql);
+            var result = ComparableSqlParser.IsSafe(sql);
 
             Assert.IsFalse(result.Valid);
-            Assert.IsNotEmpty(result.Message);
+            Assert.IsNotEmpty(result.ValidationMessage);
         }
 
         [TestCase(true, "Select a From  T")]
@@ -94,10 +96,10 @@ namespace SqlDataCompare.UnitTests
         {
             string sql = string.Join("\r\n", sqlArray);
 
-            var result = SafeSqlValidator.ValidateSingleResultSet(sql);
+            var result = ComparableSqlParser.ValidateSingleResultSet(sql);
 
             Assert.AreEqual(assert, result.Valid);
-            Assert.IsNotEmpty(result.Message);
+            Assert.IsNotEmpty(result.ValidationMessage);
         }
 
         [TestCase(true, "Select a,b", "a", "b")]
@@ -118,8 +120,8 @@ namespace SqlDataCompare.UnitTests
         [TestCase(true, "Select a,(Select top 1 g from G) TopG From T", "a", "TopG")]
         public void SelectColumns(bool assertCanParse, string sql, params string[] assertCols)
         {
-            var statement = SafeSqlValidator.GetFirstSqlStatement(sql);
-            var couldParse = SafeSqlValidator.TryParseSelectColumns(statement, out string[] columns);
+            var statement = ConvertSqlStringToStatement(sql);
+            var couldParse = ComparableSqlParser.TryParseSelectColumns(statement, out string[] columns);
 
             Assert.AreEqual(assertCanParse, couldParse);
             Assert.IsTrue(Enumerable.SequenceEqual(assertCols, columns));
@@ -157,11 +159,18 @@ namespace SqlDataCompare.UnitTests
             WHERE
                 year = 2018;";
 
-            var statement = SafeSqlValidator.GetFirstSqlStatement(sql);
-            var couldParse = SafeSqlValidator.TryParseSelectColumns(statement, out string[] columns);
+            var statement = ConvertSqlStringToStatement(sql);
+            var couldParse = ComparableSqlParser.TryParseSelectColumns(statement, out string[] columns);
 
             Assert.IsTrue(couldParse);
             Assert.IsTrue(Enumerable.SequenceEqual(assertColumns, columns));
+        }
+
+        private SqlStatement ConvertSqlStringToStatement(string sql)
+        {
+            var parseResult = Parser.Parse(sql);
+
+            return parseResult.Script.Batches[0].Statements.Single();
         }
     }
 }

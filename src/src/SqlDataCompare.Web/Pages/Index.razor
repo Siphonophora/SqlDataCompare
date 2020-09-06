@@ -1,9 +1,87 @@
 ﻿@page "/"
 
-    <h1>Sql Data Compare!</h1>
-    <p>1. Enter two queries</p>
-    <p>2. Select the Keys</p>
-    <p>3. Copy the comparison script.</p>
+<h1>Sql Data Compare!</h1>
+<p>1. Enter two queries</p>
+<p>2. Select the Keys</p>
+<p>3. Copy the comparison script.</p>
 
-    <SqlInput Title="Assert Sql" />
-    <SqlInput Title="Test Sql" />
+<SqlInput Title="Assert Sql "
+          SqlParsed="(ParsedSql a) => UpdateParsedSql(a, TestParsedSql)" />
+<p>Columns</p>
+@foreach (var col in AssertParsedSql.ColumnNames)
+{
+    <p>@col</p>
+}
+<SqlInput Title="Test Sql"
+          SqlParsed="(ParsedSql t) => UpdateParsedSql(AssertParsedSql, t)" />
+<p>Columns</p>
+@foreach (var col in TestParsedSql.ColumnNames)
+{
+    <p>@col</p>
+}
+
+@if (comparable)
+{
+    <h1>Comparable!</h1>
+}
+else
+{
+    <div style="color:darkred">@errorMessage</div>
+}
+
+@code{
+    ParsedSql AssertParsedSql = new ParsedSql(string.Empty, false, "Not entered yet");
+    ParsedSql TestParsedSql = new ParsedSql(string.Empty, false, "Not entered yet");
+    string errorMessage = string.Empty;
+    bool comparable = false;
+
+    private void UpdateParsedSql(ParsedSql assertSql, ParsedSql testSql)
+    {
+        comparable = false;
+        errorMessage = string.Empty;
+
+        AssertParsedSql = assertSql;
+        TestParsedSql = testSql;
+
+        if (AssertParsedSql.Sql == string.Empty && TestParsedSql.Sql == string.Empty)
+        {
+            errorMessage = string.Empty;
+        }
+        else if (AssertParsedSql.Sql == string.Empty)
+        {
+            errorMessage = "Enter assert sql";
+        }
+        else if (TestParsedSql.Sql == string.Empty)
+        {
+            errorMessage = "Enter test sql";
+        }
+        else if (AssertParsedSql.Valid && TestParsedSql.Valid)
+        {
+            var extraAssertCols = AssertParsedSql
+                .ColumnNames
+                .Except(TestParsedSql.ColumnNames, StringComparer.InvariantCultureIgnoreCase);
+
+            var extraTestCols = TestParsedSql
+                .ColumnNames
+                .Except(AssertParsedSql.ColumnNames, StringComparer.InvariantCultureIgnoreCase);
+
+            if (!extraAssertCols.Any() && !extraTestCols.Any())
+            {
+                comparable = true;
+            }
+            else
+            {
+                errorMessage = ExtraColumnMessage("Assert SQL", "Test SQL", extraAssertCols);
+                errorMessage += ExtraColumnMessage("Test SQL", "Assert SQL", extraTestCols);
+            }
+        }
+
+        StateHasChanged();
+
+        string ExtraColumnMessage(string setName, string otherSet, IEnumerable<string> cols) =>
+            cols.Any() ?
+            $"{setName} has column(s) ({string.Join(", ", cols.OrderBy(x => x))}) which are not present in {otherSet}. " :
+            string.Empty;
+
+    }
+}

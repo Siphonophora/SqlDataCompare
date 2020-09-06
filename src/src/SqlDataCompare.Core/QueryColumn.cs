@@ -8,15 +8,15 @@ namespace SqlDataCompare.Core
 {
     public readonly struct QueryColumn : IEquatable<QueryColumn>
     {
-        public QueryColumn(string name, bool isKey, int sortOrder, bool sortAscending)
+        public QueryColumn(string columnName, bool isKey, int sortOrder, bool sortAscending)
         {
-            Name = name ?? throw new ArgumentNullException(nameof(name));
+            ColumnName = columnName ?? throw new ArgumentNullException(nameof(columnName));
             IsKey = isKey;
             SortOrder = sortOrder;
             SortAscending = sortAscending;
         }
 
-        public string Name { get; }
+        public string ColumnName { get; }
 
         public bool IsKey { get; }
 
@@ -41,7 +41,7 @@ namespace SqlDataCompare.Core
 
         public bool Equals(QueryColumn other)
         {
-            return Name == other.Name &&
+            return ColumnName == other.ColumnName &&
                    IsKey == other.IsKey &&
                    SortOrder == other.SortOrder &&
                    SortAscending == other.SortAscending;
@@ -49,7 +49,7 @@ namespace SqlDataCompare.Core
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Name, IsKey, SortOrder, SortAscending);
+            return HashCode.Combine(ColumnName, IsKey, SortOrder, SortAscending);
         }
     }
 }
