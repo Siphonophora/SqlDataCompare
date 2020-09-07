@@ -15,7 +15,6 @@ namespace SqlDataCompare.Core.Services
         public IOrderedEnumerable<ComparableColumn> ComparableColumns =>
             comparableColumns
                 .OrderByDescending(x => x.IsKey)
-                .ThenBy(x => x.KeySortOrder)
                 .ThenBy(x => x.ColumnOrder)
                 .ThenBy(x => x.ColumnName);
 

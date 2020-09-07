@@ -1,14 +1,16 @@
-﻿<h5>@Title</h5>
+﻿<div class="flex-fill p-2">
+    <h5>@Title</h5>
 <textarea @bind-value="textInput" @bind-value:event="oninput" @onkeyup="@HandleKeyUp"
           style="height: 15rem; font-family:Consolas" type="text" class="form-control" placeholder="Enter Some sql..." />
 
-<p>Valid: @parseResult.Valid</p>
-<p>Message: @parseResult.ValidationMessage</p>
+    <p>Valid: @parseResult.Valid</p>
+    <p>Message: @parseResult.ValidationMessage</p>
+</div>
 
 @code{
     private string textInput = string.Empty;
     private ParsedSql parseResult = new ParsedSql(string.Empty, false, "Enter Some SQL");
-    private System.Timers.Timer debounceTimer = new System.Timers.Timer(1000);
+    private System.Timers.Timer debounceTimer = new System.Timers.Timer(300);
 
     [Parameter] public string Title { get; set; } = string.Empty;
     [Parameter] public Action<ParsedSql> SqlParsed { get; set; }

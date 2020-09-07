@@ -19,11 +19,6 @@ namespace SqlDataCompare.Core.Models
         public bool IsKey { get; set; }
 
         /// <summary>
-        /// Defines the order the keys are sorted in the output.
-        /// </summary>
-        public int KeySortOrder { get; set; }
-
-        /// <summary>
         /// Defines the display order of the columns.
         /// </summary>
         public int ColumnOrder { get; set; }

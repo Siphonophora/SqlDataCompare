@@ -7,15 +7,17 @@
 <p>2. Select the Keys</p>
 <p>3. Copy the comparison script.</p>
 
-<SqlInput Title="Assert Sql "
-          SqlParsed="(ParsedSql a) => { columnService.UpdateParsedSql(assertSql: a); StateHasChanged(); }" />
-<SqlInput Title="Test Sql"
-          SqlParsed="(ParsedSql t) => { columnService.UpdateParsedSql(testSql: t); StateHasChanged(); }" />
+<div class="d-flex flex-row">
+    <SqlInput Title="Assert Sql"
+              SqlParsed="(ParsedSql a) => { columnService.UpdateParsedSql(assertSql: a); StateHasChanged(); }" />
+    <SqlInput Title="Test Sql"
+              SqlParsed="(ParsedSql t) => { columnService.UpdateParsedSql(testSql: t); StateHasChanged(); }" />
+</div>
 
 @if (columnService.Comparable)
 {
     <h1>Comparable!</h1>
-    <ColumnTable Columns="columnService.ComparableColumns" Changed="UpdateTemplate" />
+    <ColumnTable OrderedColumns="@(() => columnService.ComparableColumns)" Changed="UpdateTemplate" />
 
     @if (needsKeys)
     {
