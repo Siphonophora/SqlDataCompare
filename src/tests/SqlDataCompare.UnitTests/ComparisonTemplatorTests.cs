@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.SqlServer.Management.SqlParser.Parser;
 using NUnit.Framework;
-using SqlDataCompare.Core;
 
 namespace SqlDataCompare.UnitTests
 {

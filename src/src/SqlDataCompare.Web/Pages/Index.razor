@@ -1,4 +1,6 @@
 ﻿@page "/"
+@inject ComprableColumnService columnService
+@inject ComparisonTemplator templator
 
 <h1>Sql Data Compare!</h1>
 <p>1. Enter two queries</p>
@@ -6,82 +8,46 @@
 <p>3. Copy the comparison script.</p>
 
 <SqlInput Title="Assert Sql "
-          SqlParsed="(ParsedSql a) => UpdateParsedSql(a, TestParsedSql)" />
-<p>Columns</p>
-@foreach (var col in AssertParsedSql.ColumnNames)
-{
-    <p>@col</p>
-}
+          SqlParsed="(ParsedSql a) => { columnService.UpdateParsedSql(assertSql: a); StateHasChanged(); }" />
 <SqlInput Title="Test Sql"
-          SqlParsed="(ParsedSql t) => UpdateParsedSql(AssertParsedSql, t)" />
-<p>Columns</p>
-@foreach (var col in TestParsedSql.ColumnNames)
-{
-    <p>@col</p>
-}
+          SqlParsed="(ParsedSql t) => { columnService.UpdateParsedSql(testSql: t); StateHasChanged(); }" />
 
-@if (comparable)
+@if (columnService.Comparable)
 {
     <h1>Comparable!</h1>
+    <ColumnTable Columns="columnService.ComparableColumns" Changed="UpdateTemplate" />
+
+    @if (needsKeys)
+    {
+        <p>You must pick at least one key column.</p>
+    }
+    else
+    {
+        <SqlTemplate Sql="@templatedSql" />
+    }
 }
 else
 {
-    <div style="color:darkred">@errorMessage</div>
+    <div style="color:darkred">@columnService.ErrorMessage</div>
 }
 
 @code{
-    ParsedSql AssertParsedSql = new ParsedSql(string.Empty, false, "Not entered yet");
-    ParsedSql TestParsedSql = new ParsedSql(string.Empty, false, "Not entered yet");
-    string errorMessage = string.Empty;
-    bool comparable = false;
+    private string templatedSql = string.Empty;
+    private bool needsKeys = true;
 
-    private void UpdateParsedSql(ParsedSql assertSql, ParsedSql testSql)
+    private void UpdateTemplate()
     {
-        comparable = false;
-        errorMessage = string.Empty;
-
-        AssertParsedSql = assertSql;
-        TestParsedSql = testSql;
-
-        if (AssertParsedSql.Sql == string.Empty && TestParsedSql.Sql == string.Empty)
+        if (!columnService.ComparableColumns.Any(x => x.IsKey))
         {
-            errorMessage = string.Empty;
-        }
-        else if (AssertParsedSql.Sql == string.Empty)
-        {
-            errorMessage = "Enter assert sql";
-        }
-        else if (TestParsedSql.Sql == string.Empty)
-        {
-            errorMessage = "Enter test sql";
-        }
-        else if (AssertParsedSql.Valid && TestParsedSql.Valid)
-        {
-            var extraAssertCols = AssertParsedSql
-                .ColumnNames
-                .Except(TestParsedSql.ColumnNames, StringComparer.InvariantCultureIgnoreCase);
-
-            var extraTestCols = TestParsedSql
-                .ColumnNames
-                .Except(AssertParsedSql.ColumnNames, StringComparer.InvariantCultureIgnoreCase);
-
-            if (!extraAssertCols.Any() && !extraTestCols.Any())
-            {
-                comparable = true;
-            }
-            else
-            {
-                errorMessage = ExtraColumnMessage("Assert SQL", "Test SQL", extraAssertCols);
-                errorMessage += ExtraColumnMessage("Test SQL", "Assert SQL", extraTestCols);
-            }
+            needsKeys = true;
+            return;
         }
 
+        needsKeys = false;
+        templatedSql = templator.Create(columnService.AssertParsedSql.Sql,
+                                        columnService.TestParsedSql.Sql,
+                                        columnService.ComparableColumns,
+                                        true);
         StateHasChanged();
-
-        string ExtraColumnMessage(string setName, string otherSet, IEnumerable<string> cols) =>
-            cols.Any() ?
-            $"{setName} has column(s) ({string.Join(", ", cols.OrderBy(x => x))}) which are not present in {otherSet}. " :
-            string.Empty;
-
     }
 }

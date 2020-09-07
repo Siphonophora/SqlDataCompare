@@ -1,0 +1,34 @@
+﻿<table class="table table-striped">
+    <tr>
+        <th>Column Name</th>
+        <th>Key</th>
+        <th>Key Sort</th>
+        <th>Column Order</th>
+        <th>Sort Descending</th>
+    </tr>
+
+    @foreach (var col in Columns)
+    {
+        <tr @key="col.ColumnName">
+            <td>@col.ColumnName</td>
+            <td>
+                <Checkbox Value="@col.IsKey"
+                          Update="@(() => UpdateKey(col))" />
+            </td>
+            <td>@col.KeySortOrder</td>
+            <td>@col.ColumnOrder</td>
+            <td><input type="checkbox" @bind="@col.SortDescending"></td>
+        </tr>
+    }
+</table>
+
+@code{
+    [Parameter] public IOrderedEnumerable<ComparableColumn> Columns { get; set; }
+    [Parameter] public Action Changed { get; set; }
+
+    private void UpdateKey(ComparableColumn col)
+    {
+        col.IsKey = !col.IsKey;
+        Changed.Invoke();
+    }
+}

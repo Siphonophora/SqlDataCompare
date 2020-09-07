@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.SqlServer.Management.SqlParser.Parser;
 using Microsoft.SqlServer.Management.SqlParser.SqlCodeDom;
 using NUnit.Framework;
-using SqlDataCompare.Core;
 
 namespace SqlDataCompare.UnitTests
 {

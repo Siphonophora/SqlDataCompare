@@ -29,15 +29,8 @@
     {
         InvokeAsync(() =>
         {
-            if (string.IsNullOrWhiteSpace(textInput))
-            {
-                parseResult = new ParsedSql(string.Empty, false, "Enter Some SQL");
-            }
-            else
-            {
-                parseResult = ComparableSqlParser.ParseAndValidate(textInput);
-                SqlParsed.Invoke(parseResult);
-            }
+            parseResult = ComparableSqlParser.ParseAndValidate(textInput);
+            SqlParsed.Invoke(parseResult);
             StateHasChanged();
         });
     }

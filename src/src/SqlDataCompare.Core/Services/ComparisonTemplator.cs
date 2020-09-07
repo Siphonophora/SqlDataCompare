@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.SqlServer.Management.SqlParser.Parser;
+using SqlDataCompare.Core.Models;
 
-namespace SqlDataCompare.Core
+namespace SqlDataCompare.Core.Services
 {
     public class ComparisonTemplator
     {
@@ -15,9 +15,9 @@ namespace SqlDataCompare.Core
             Warning,
         }
 
-        public StringBuilder DropTable { get; set; } = new StringBuilder();
+        private StringBuilder DropTable { get; set; } = new StringBuilder();
 
-        public string Create(string assertSql, string testSql, IEnumerable<QueryColumn> queryColumns, bool addIntoStatement)
+        public string Create(string assertSql, string testSql, IEnumerable<ComparableColumn> comparableColumns, bool addIntoStatement)
         {
             assertSql = assertSql ?? throw new ArgumentNullException(nameof(assertSql));
             testSql = testSql ?? throw new ArgumentNullException(nameof(testSql));
@@ -31,9 +31,9 @@ namespace SqlDataCompare.Core
             var missingTable = "#Missing";
 
             // TODO sort the keys and columns appropately.
-            var keys = queryColumns.Where(x => x.IsKey).Select(x => x.ColumnName);
+            var keys = comparableColumns.Where(x => x.IsKey).Select(x => x.ColumnName);
             var commaKeys = string.Join(", ", keys);
-            var columns = queryColumns.Where(x => !x.IsKey).Select(x => x.ColumnName);
+            var columns = comparableColumns.Where(x => !x.IsKey).Select(x => x.ColumnName);
             var commaColuns = string.Join(", ", columns);
 
             var template = new StringBuilder();

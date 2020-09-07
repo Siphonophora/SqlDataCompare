@@ -7,8 +7,9 @@ using System.Threading.Tasks;
 using System.Xml;
 using Microsoft.SqlServer.Management.SqlParser.Parser;
 using Microsoft.SqlServer.Management.SqlParser.SqlCodeDom;
+using SqlDataCompare.Core.Models;
 
-namespace SqlDataCompare.Core
+namespace SqlDataCompare.Core.Services
 {
     public static class ComparableSqlParser
     {

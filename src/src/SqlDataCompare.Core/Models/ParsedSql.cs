@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SqlDataCompare.Core
+namespace SqlDataCompare.Core.Models
 {
     public readonly struct ParsedSql : IEquatable<ParsedSql>
     {
