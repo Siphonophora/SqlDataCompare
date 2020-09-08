@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using Microsoft.SqlServer.Management.SqlParser.Parser;
 using Microsoft.SqlServer.Management.SqlParser.SqlCodeDom;
+using SqlDataCompare.Core.Enums;
 using SqlDataCompare.Core.Models;
 
 namespace SqlDataCompare.Core.Services
@@ -15,6 +16,11 @@ namespace SqlDataCompare.Core.Services
     {
         public static ParsedSql ParseAndValidate(string sql)
         {
+            if (string.IsNullOrWhiteSpace(sql))
+            {
+                return new ParsedSql(sql, ParseResultValue.Warning, "Sql cannot be empty.");
+            }
+
             var parseResult = Parser.Parse(sql);
 
             if (parseResult.Errors.Any())
@@ -26,11 +32,11 @@ namespace SqlDataCompare.Core.Services
                     sb.Append(error.Message + " ");
                 }
 
-                return new ParsedSql(sql, false, "SQL Has Errors: " + sb.ToString());
+                return new ParsedSql(sql, ParseResultValue.Error, "SQL Has Errors: " + sb.ToString());
             }
             else if (parseResult.Script.Batches[0].Statements[0].Statement == null)
             {
-                return new ParsedSql(sql, false, "Not narsable as SQL.");
+                return new ParsedSql(sql, ParseResultValue.Error, "Not parsable as SQL.");
             }
 
             // TODO, when do we get multiple batches? When there are GOs? Can we handle multiple
@@ -41,11 +47,11 @@ namespace SqlDataCompare.Core.Services
             // All columns have names, which are unique and no * selects.
             if (BatchesAreSafe(batches, out var batchMessage) == false)
             {
-                return new ParsedSql(sql, false, batchMessage);
+                return new ParsedSql(sql, ParseResultValue.Error, batchMessage);
             }
             else if (BatchesProduceOneResultSet(batches, out var resultSetMessage) == false)
             {
-                return new ParsedSql(sql, false, resultSetMessage);
+                return new ParsedSql(sql, ParseResultValue.Error, resultSetMessage);
             }
             else
             {
@@ -56,20 +62,21 @@ namespace SqlDataCompare.Core.Services
                 var xmlDoc = new XmlDocument();
                 xmlDoc.LoadXml(lastStatement.Xml);
 
-                //Narrow to only the Select. There otherwise could be a CTE or something else containing SqlSelectClause
+                // Narrow to only the Select. There otherwise could be a CTE or something else
+                // containing SqlSelectClause.
                 try
                 {
                     xmlDoc.LoadXml(xmlDoc.GetElementsByTagName("SqlSelectSpecification")[0].OuterXml);
                 }
                 catch
                 {
-                    return new ParsedSql(sql, false, "Unable to find a select specification. Shouldn't be possible Please report this error if it occurs");
+                    return new ParsedSql(sql, ParseResultValue.Error, "Unable to find a select specification. Shouldn't be possible Please report this error if it occurs");
                 }
 
                 var select = xmlDoc.GetElementsByTagName("SqlSelectClause");
                 if (select.Count == 0)
                 {
-                    return new ParsedSql(sql, false, "Unable to find a select clause. Shouldn't be possible Please report this error if it occurs");
+                    return new ParsedSql(sql, ParseResultValue.Error, "Unable to find a select clause. Shouldn't be possible Please report this error if it occurs");
                 }
 
                 xmlDoc.LoadXml(select[0].OuterXml.ToString());
@@ -96,25 +103,25 @@ namespace SqlDataCompare.Core.Services
                                 continue;
                             }
 
-                            return new ParsedSql(sql, false, "Error - Select is not comparable because at least column is unnamed in statement");
+                            return new ParsedSql(sql, ParseResultValue.Error, "Select is not comparable because at least column is unnamed in statement");
                         }
                     }
                     else if (node.Name == "SqlSelectStarExpression")
                     {
-                        return new ParsedSql(sql, false, "Error - Select is not comparable because at least one * is used in statement");
+                        return new ParsedSql(sql, ParseResultValue.Error, "Select is not comparable because at least one * is used in statement");
                     }
                 }
 
                 if (colList.Count != colList.Distinct(StringComparer.InvariantCultureIgnoreCase).Count())
                 {
-                    return new ParsedSql(sql, false, "Error - Select is not comparable because at least one column name is used multiple times");
+                    return new ParsedSql(sql, ParseResultValue.Error, "Select is not comparable because at least one column name is used multiple times");
                 }
 
-                return new ParsedSql(sql, true, "Valid SQL", colList);
+                return new ParsedSql(sql, ParseResultValue.Valid, "Valid SQL", colList);
             }
         }
 
-        internal static bool BatchesAreSafe(SqlBatchCollection batches, out string message)
+        private static bool BatchesAreSafe(SqlBatchCollection batches, out string message)
         {
             for (int i = 0; i < batches.Count; i++)
             {
@@ -139,7 +146,7 @@ namespace SqlDataCompare.Core.Services
             return true;
         }
 
-        internal static bool BatchesProduceOneResultSet(SqlBatchCollection batches, out string message)
+        private static bool BatchesProduceOneResultSet(SqlBatchCollection batches, out string message)
         {
             var selectCount = batches.SelectMany(x => x.Statements).Where(x => IsPlainSelect(x)).Count();
 

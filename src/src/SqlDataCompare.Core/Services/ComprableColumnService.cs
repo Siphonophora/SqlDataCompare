@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SqlDataCompare.Core.Enums;
 using SqlDataCompare.Core.Models;
 
 namespace SqlDataCompare.Core.Services
@@ -18,9 +19,9 @@ namespace SqlDataCompare.Core.Services
                 .ThenBy(x => x.ColumnOrder)
                 .ThenBy(x => x.ColumnName);
 
-        public ParsedSql AssertParsedSql { get; private set; } = new ParsedSql(string.Empty, false, "Not entered yet");
+        public ParsedSql AssertParsedSql { get; private set; } = new ParsedSql(string.Empty, ParseResultValue.Warning, "Not entered yet");
 
-        public ParsedSql TestParsedSql { get; private set; } = new ParsedSql(string.Empty, false, "Not entered yet");
+        public ParsedSql TestParsedSql { get; private set; } = new ParsedSql(string.Empty, ParseResultValue.Warning, "Not entered yet");
 
         public string ErrorMessage { get; private set; } = string.Empty;
 
@@ -46,7 +47,7 @@ namespace SqlDataCompare.Core.Services
             {
                 ErrorMessage = "Enter test sql";
             }
-            else if (AssertParsedSql.Valid && TestParsedSql.Valid)
+            else if (AssertParsedSql.ParseResult == ParseResultValue.Valid && TestParsedSql.ParseResult == ParseResultValue.Valid)
             {
                 var extraAssertCols = AssertParsedSql
                     .ColumnNames

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SqlDataCompare.Core.Enums;
 
 namespace SqlDataCompare.Core.Models
 {
@@ -10,20 +11,20 @@ namespace SqlDataCompare.Core.Models
     {
         private readonly List<string> columnNames;
 
-        public ParsedSql(string sql, bool valid, string validationMessage)
-            : this(sql, valid, validationMessage, new List<string>())
+        public ParsedSql(string sql, ParseResultValue parseResult, string validationMessage)
+            : this(sql, parseResult, validationMessage, new List<string>())
         {
-            if (valid)
+            if (parseResult == ParseResultValue.Valid)
             {
                 throw new ArgumentException("Valid parsed sql must supply columns");
             }
         }
 
-        public ParsedSql(string sql, bool valid, string validationMessage, List<string> columnNames)
+        public ParsedSql(string sql, ParseResultValue parseResult, string validationMessage, List<string> columnNames)
         {
             this.columnNames = columnNames ?? throw new ArgumentNullException(nameof(columnNames));
             Sql = sql ?? throw new ArgumentNullException(nameof(sql));
-            Valid = valid;
+            ParseResult = parseResult;
             ValidationMessage = validationMessage ?? throw new ArgumentNullException(nameof(validationMessage));
         }
 
@@ -32,7 +33,7 @@ namespace SqlDataCompare.Core.Models
         /// <summary>
         /// Valid should mean both that the SQL is valid, and that we consider it safe (side effect free).
         /// </summary>
-        public bool Valid { get; }
+        public ParseResultValue ParseResult { get; }
 
         public string ValidationMessage { get; }
 
@@ -46,14 +47,14 @@ namespace SqlDataCompare.Core.Models
         public bool Equals(ParsedSql other)
         {
             return Sql == other.Sql &&
-                   Valid == other.Valid &&
+                   ParseResult == other.ParseResult &&
                    ValidationMessage == other.ValidationMessage &&
                    EqualityComparer<IEnumerable<string>>.Default.Equals(ColumnNames, other.ColumnNames);
         }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Sql, Valid, ValidationMessage, ColumnNames);
+            return HashCode.Combine(Sql, ParseResult, ValidationMessage, ColumnNames);
         }
     }
 }

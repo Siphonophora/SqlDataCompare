@@ -3,13 +3,13 @@
 <textarea @bind-value="textInput" @bind-value:event="oninput" @onkeyup="@HandleKeyUp"
           style="height: 15rem; font-family:Consolas" type="text" class="form-control" placeholder="Enter Some sql..." />
 
-    <p>Valid: @parseResult.Valid</p>
+    <p>Valid: @parseResult.ParseResult</p>
     <p>Message: @parseResult.ValidationMessage</p>
 </div>
 
 @code{
     private string textInput = string.Empty;
-    private ParsedSql parseResult = new ParsedSql(string.Empty, false, "Enter Some SQL");
+    private ParsedSql parseResult = new ParsedSql(string.Empty, ParseResultValue.Warning, "Enter Some SQL");
     private System.Timers.Timer debounceTimer = new System.Timers.Timer(300);
 
     [Parameter] public string Title { get; set; } = string.Empty;
