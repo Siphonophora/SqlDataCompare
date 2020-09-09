@@ -85,17 +85,19 @@ namespace SqlDataCompare.Core.Services
             DropTempTableIfExists(matchedTable);
             outputTables.Add(matchedTable);
             template.AppendLine();
-            template.AppendLine($"Select { AliasColumns(assert, keys, true)}\r\n     , '' [ ] \r\n     , {AliasColumns(assert, columns, true)}");
+            template.AppendLine($"Select {AliasColumns(assert, keys, true)}");
+            template.AppendLineIf(columns.Any(), $", '' [ ] \r\n     , {AliasColumns(assert, columns, true)}");
             template.AppendLine($"Into {matchedTable}");
             template.AppendLine($"From {testTable} {test}                ");
             template.AppendLine($"Join {assertTable} {assert} on {JoinON(assert, test, keys)} ");
-            template.AppendLine($"Where {WhereMatch(assert, test, columns)}");
+            template.AppendLineIf(columns.Any(), $"Where {WhereMatch(assert, test, columns)}");
             template.AppendLine();
 
             DropTempTableIfExists(missingTable);
             outputTables.Add(missingTable);
             template.AppendLine();
-            template.AppendLine($"Select { AliasColumns(assert, keys, true)}\r\n     , '' [ ] \r\n     , {AliasColumns(assert, columns)}");
+            template.AppendLine($"Select {AliasColumns(assert, keys, true)}");
+            template.AppendLineIf(columns.Any(), $", '' [ ] \r\n     , {AliasColumns(assert, columns)}");
             template.AppendLine($"Into {missingTable}");
             template.AppendLine($"From {assertTable} {assert}                ");
             template.AppendLine($"Left Join {testTable} {test} on {JoinON(assert, test, keys)} ");
@@ -104,38 +106,46 @@ namespace SqlDataCompare.Core.Services
             DropTempTableIfExists(extraTable);
             outputTables.Add(extraTable);
             template.AppendLine();
-            template.AppendLine($"Select { AliasColumns(test, keys, true)}\r\n     , '' [ ] \r\n     , {AliasColumns(test, columns)}");
+            template.AppendLine($"Select {AliasColumns(test, keys, true)}");
+            template.AppendLineIf(columns.Any(), $", '' [ ] \r\n     , {AliasColumns(test, columns)}");
             template.AppendLine($"Into {extraTable}");
             template.AppendLine($"From {testTable} {test}                ");
             template.AppendLine($"Left Join {assertTable} {assert} on {JoinON(assert, test, keys)} ");
             template.AppendLine($"Where {assert}.{keys.First()} IS NULL");
             template.AppendLine();
 
-            DropTempTableIfExists(discrepantTable);
-            outputTables.Add(discrepantTable);
-            template.AppendLine();
-            template.AppendLine($"Select { AliasColumns(assert, keys, true)}\r\n     , '' [ ] \r\n     , {CompareColumns(assert, test, columns)}");
-            template.AppendLine($"Into {discrepantTable}");
-            template.AppendLine($"From {testTable} {test}                ");
-            template.AppendLine($"Join {assertTable} {assert} on {JoinON(assert, test, keys)} ");
-            template.AppendLine($"Where {WhereNotMatch(assert, test, columns)}");
-            template.AppendLine();
-
-            foreach (var column in columns)
+            if (columns.Any())
             {
-                var discrepantDetailTable = $"{discrepantTable}__{column}";
-                var columnDisplay = columns.Where(x => x != column).ToList();
-                columnDisplay.Insert(0, column);
-
-                DropTempTableIfExists(discrepantDetailTable);
-                outputTables.Add(discrepantDetailTable);
+                DropTempTableIfExists(discrepantTable);
+                outputTables.Add(discrepantTable);
                 template.AppendLine();
-                template.AppendLine($"Select { AliasColumns(assert, keys, true)}\r\n     , '' [ ] \r\n     , {CompareColumns(assert, test, columnDisplay.ToArray())}");
-                template.AppendLine($"Into {discrepantDetailTable}");
+                template.AppendLine($"Select {AliasColumns(assert, keys, true)}\r\n     , '' [ ] \r\n     , {CompareColumns(assert, test, columns)}");
+                template.AppendLine($"Into {discrepantTable}");
                 template.AppendLine($"From {testTable} {test}                ");
                 template.AppendLine($"Join {assertTable} {assert} on {JoinON(assert, test, keys)} ");
-                template.AppendLine($"Where {WhereNotMatch(assert, test, new string[] { column })}");
+                template.AppendLine($"Where {WhereNotMatch(assert, test, columns)}");
                 template.AppendLine();
+
+                foreach (var column in columns)
+                {
+                    var discrepantDetailTable = $"{discrepantTable}__{column}";
+                    var columnDisplay = columns.Where(x => x != column).ToList();
+                    columnDisplay.Insert(0, column);
+
+                    DropTempTableIfExists(discrepantDetailTable);
+                    outputTables.Add(discrepantDetailTable);
+                    template.AppendLine();
+                    template.AppendLine($"Select { AliasColumns(assert, keys, true)}\r\n     , '' [ ] \r\n     , {CompareColumns(assert, test, columnDisplay.ToArray())}");
+                    template.AppendLine($"Into {discrepantDetailTable}");
+                    template.AppendLine($"From {testTable} {test}                ");
+                    template.AppendLine($"Join {assertTable} {assert} on {JoinON(assert, test, keys)} ");
+                    template.AppendLine($"Where {WhereNotMatch(assert, test, new string[] { column })}");
+                    template.AppendLine();
+                }
+            }
+            else
+            {
+                template.AppendLine("Print('All columns selected are keys, so rows cannot be discrepant. They can only match, be extra or missing')");
             }
 
             template.AppendLine("Declare @RecordCount int");

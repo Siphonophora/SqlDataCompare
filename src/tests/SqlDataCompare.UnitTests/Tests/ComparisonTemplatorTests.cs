@@ -42,8 +42,13 @@ namespace SqlDataCompare.UnitTests
 
             if (actualResult.ParseResult == ParseResultValue.Valid)
             {
-                var cols = actualResult.ColumnNames.Select(x => new ComparableColumn(x, 1));
+                var cols = actualResult.ColumnNames.Select(x => new ComparableColumn(x, 1)).ToList();
                 cols.First().IsKey = true;
+
+                if (!cols.Any(x => x.IsKey))
+                {
+                    var a = 1;
+                }
 
                 var template = sut.Create(sql, sql, cols, true);
                 Assert.AreEqual(0, Parser.Parse(template).Errors.Count());
