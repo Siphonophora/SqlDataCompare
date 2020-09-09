@@ -17,12 +17,10 @@ namespace SqlDataCompare.Core.Services
 
         private StringBuilder DropTable { get; set; } = new StringBuilder();
 
-        public string Create(string assertSql, string testSql, IEnumerable<ComparableColumn> comparableColumns, bool addIntoStatement)
+        public string Create(ParsedSql assertSql, ParsedSql testSql, IEnumerable<ComparableColumn> comparableColumns)
         {
-            assertSql = assertSql ?? throw new ArgumentNullException(nameof(assertSql));
-            testSql = testSql ?? throw new ArgumentNullException(nameof(testSql));
-
             DropTable.Clear();
+
             var assertTable = "#Assert";
             var testTable = "#Test";
             var matchedTable = "#Matched";
@@ -50,9 +48,9 @@ namespace SqlDataCompare.Core.Services
 
             template.AppendLine("Declare @ErrorCount int; --Helper for later");
 
-            template.AppendLine(GetIntoStatements(assertSql, assertTable, addIntoStatement));
+            template.AppendLine(GetIntoStatements(assertSql, assertTable));
             template.AppendLine();
-            template.AppendLine(GetIntoStatements(testSql, testTable, addIntoStatement));
+            template.AppendLine(GetIntoStatements(testSql, testTable));
 
             template.AppendLine("-- =====================================================================================================================");
             template.AppendLine("--                                       Perform Base Analysis  ");
@@ -380,7 +378,7 @@ namespace SqlDataCompare.Core.Services
             DropTable.AppendLine("GO\r\n");
         }
 
-        private string GetIntoStatements(string sql, string intoTable, bool addIntoStatement)
+        private string GetIntoStatements(ParsedSql sql, string intoTable)
         {
             var statements = new StringBuilder();
             DropTempTableIfExists(intoTable);
@@ -390,17 +388,8 @@ namespace SqlDataCompare.Core.Services
             string duration = param.Name("DurationMS");
             statements.AppendLine($"Declare {start} datetime = GetDate();");
 
-            //TODO revisit this. There are cases where there is a from in a where clause that breaks this.
-            if (addIntoStatement)
-            {
-                var parsedResult = Parser.Parse(sql);
-                var fromStart = parsedResult.Script.Tokens.Where(x => x.Type.ToString() == "TOKEN_FROM").Last().StartLocation;
-                var stringIndex = fromStart.Offset;
-                sql = sql.Insert(stringIndex - 1, $"\r\nInto {intoTable}\r\n");
-            }
-
             statements.AppendLine($"--==============================================  Add 'Into {intoTable}' to the query =================================");
-            statements.AppendLine(sql);
+            statements.AppendLine(sql.GetSqlWithInto(intoTable));
 
             statements.AppendLine($"\r\nDeclare {duration} int = Datediff(MS, {start}, GetDate());");
             statements.AppendLine(UpdateStat(intoTable, "DurationMS", duration));

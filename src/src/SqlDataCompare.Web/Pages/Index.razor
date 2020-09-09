@@ -46,10 +46,9 @@ else
         }
 
         needsKeys = false;
-        templatedSql = templator.Create(columnService.AssertParsedSql.Sql,
-                                        columnService.TestParsedSql.Sql,
-                                        columnService.ComparableColumns,
-                                        true);
+        templatedSql = templator.Create(columnService.AssertParsedSql,
+                                        columnService.TestParsedSql,
+                                        columnService.ComparableColumns);
         StateHasChanged();
     }
 }

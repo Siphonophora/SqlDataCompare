@@ -50,7 +50,7 @@ namespace SqlDataCompare.UnitTests
                     var a = 1;
                 }
 
-                var template = sut.Create(sql, sql, cols, true);
+                var template = sut.Create(actualResult, actualResult, cols);
                 Assert.AreEqual(0, Parser.Parse(template).Errors.Count());
             }
         }
@@ -65,7 +65,7 @@ namespace SqlDataCompare.UnitTests
                 var cols = actualResult.ColumnNames.Select(x => new ComparableColumn(x, 1)).ToList();
                 cols.ForEach(x => x.IsKey = true);
 
-                var template = sut.Create(sql, sql, cols, true);
+                var template = sut.Create(actualResult, actualResult, cols);
                 Assert.AreEqual(0, Parser.Parse(template).Errors.Count());
             }
         }

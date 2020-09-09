@@ -1,5 +1,15 @@
 [
     {
+        "Sql": "drop table #t; go; \r\n (select UserName, FirstName, (Select Top 1 ') Select fgd From (' From Users) LastName into #T from (Select * From Users) T Where a in (select a from g)); \r\n select 1  --foo\r\n a --foo \r\n from wlekjf",
+        "ParseResult": "Valid",
+        "Columns": [ "UserName", "FirstName", "LastName" ]
+    },
+    {
+        "Sql": "drop table #t; go; \r\n (select UserName, FirstName, (Select Top 1 ') Select fgd From (' From Users) LastName into #T from (Select * From Users) T Where a in (select a from g)); \r\n select 1  --foo\r\n a --foo",
+        "ParseResult": "Valid",
+        "Columns": [ "UserName", "FirstName", "LastName" ]
+    },
+    {
         "Sql": "select UserName, FirstName, LastName from Users",
         "ParseResult": "Valid",
         "Columns": [ "UserName", "FirstName", "LastName" ]
