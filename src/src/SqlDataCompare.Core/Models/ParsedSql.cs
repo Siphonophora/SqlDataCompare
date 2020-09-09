@@ -12,7 +12,7 @@ namespace SqlDataCompare.Core.Models
         private readonly List<string> columnNames;
 
         public ParsedSql(string sql, ParseResultValue parseResult, string validationMessage)
-            : this(sql, parseResult, validationMessage, new List<string>())
+            : this(sql, parseResult, validationMessage, new List<string>(), default)
         {
             if (parseResult == ParseResultValue.Valid)
             {
@@ -20,15 +20,18 @@ namespace SqlDataCompare.Core.Models
             }
         }
 
-        public ParsedSql(string sql, ParseResultValue parseResult, string validationMessage, List<string> columnNames)
+        public ParsedSql(string sql, ParseResultValue parseResult, string validationMessage, List<string> columnNames, int intoIndex)
         {
             this.columnNames = columnNames ?? throw new ArgumentNullException(nameof(columnNames));
             Sql = sql ?? throw new ArgumentNullException(nameof(sql));
             ParseResult = parseResult;
             ValidationMessage = validationMessage ?? throw new ArgumentNullException(nameof(validationMessage));
+            IntoIndex = intoIndex;
         }
 
         public string Sql { get; }
+
+        public int IntoIndex { get; }
 
         /// <summary>
         /// Valid should mean both that the SQL is valid, and that we consider it safe (side effect free).
@@ -38,6 +41,21 @@ namespace SqlDataCompare.Core.Models
         public string ValidationMessage { get; }
 
         public IEnumerable<string> ColumnNames => columnNames.AsReadOnly();
+
+        /// <summary>
+        /// TODO unit test for single # in param
+        /// </summary>
+        /// <param name="intoTable"></param>
+        /// <returns></returns>
+        public string GetSqlWithInto(string intoTable)
+        {
+            if (ParseResult != ParseResultValue.Valid)
+            {
+                throw new InvalidOperationException($"Unable to produce for sql with a parse result of: {ParseResult}");
+            }
+
+            return Sql.Insert(IntoIndex, $"{Environment.NewLine}Into {intoTable}{Environment.NewLine}");
+        }
 
         public override bool Equals(object? obj)
         {

@@ -117,7 +117,68 @@ namespace SqlDataCompare.Core.Services
                     return new ParsedSql(sql, ParseResultValue.Error, "Select is not comparable because at least one column name is used multiple times");
                 }
 
-                return new ParsedSql(sql, ParseResultValue.Valid, "Valid SQL", colList);
+                var intoIndex = FindIntoIndex(parseResult);
+                var result = new ParsedSql(sql, ParseResultValue.Valid, "Valid SQL", colList, intoIndex);
+
+                var intosql = result.GetSqlWithInto("#Assert");
+
+                return result;
+            }
+        }
+
+        private static int FindIntoIndex(ParseResult parseResult)
+        {
+            var lastStatement = parseResult.Script.Batches.Last().Statements.Last();
+
+            var tokenString = string.Join(
+                Environment.NewLine,
+                lastStatement.Tokens.Select(
+                    x => $"ID: {x.Id}, Sig {x.IsSignificant}, {x.Type}, {x.Text}, startLoc {x.StartLocation}"));
+
+            var sql = string.Join(
+                string.Empty,
+                parseResult.Script.Tokens.Select(x => x.Text));
+
+            // Statements can be wrapped in parenthesis. The first select statement is at the depth
+            // of parenthesis we should be checking to find the From statement we care about.
+            var openParen = "(";
+            var closeParen = ")";
+            var select = "TOKEN_SELECT";
+            var from = "TOKEN_FROM";
+
+            Token? insertBeforeToken = null;
+            var parenDepth = 0;
+            var selectParenDepth = -1;
+            foreach (var token in lastStatement.Tokens)
+            {
+                if (token.Type == openParen)
+                {
+                    parenDepth++;
+                }
+                else if (token.Type == closeParen)
+                {
+                    parenDepth--;
+                }
+                else if (token.Type == select && selectParenDepth == -1)
+                {
+                    selectParenDepth = parenDepth;
+                }
+                else if (token.Type == from && selectParenDepth == parenDepth)
+                {
+                    insertBeforeToken = token;
+                    break;
+                }
+            }
+
+            if (insertBeforeToken is Token t)
+            {
+                return parseResult.Script.Tokens
+                    .Where(x => x.StartLocation.Offset < t.StartLocation.Offset)
+                    .Sum(x => x.Text.Length);
+            }
+            else
+            {
+                return parseResult.Script.Tokens.Sum(x => x.Text.Length);
             }
         }
 
