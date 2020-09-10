@@ -1,11 +1,11 @@
 [
     {
-        "Sql": "drop table #t; go; \r\n (select UserName, FirstName, (Select Top 1 ') Select fgd From (' From Users) LastName into #T from (Select * From Users) T Where a in (select a from g)); \r\n select 1  --foo\r\n a --foo \r\n from wlekjf",
+        "Sql": "drop table #t; \r\n (select UserName, FirstName, (Select Top 1 ') Select fgd From (' From Users) LastName into #T from (Select * From Users) T Where a in (select a from g)); \r\n select 1  --foo\r\n a --foo \r\n from wlekjf",
         "ParseResult": "Valid",
         "Columns": [ "a" ]
     },
     {
-        "Sql": "drop table #t; go; \r\n (select UserName, FirstName, (Select Top 1 ') Select fgd From (' From Users) LastName into #T from (Select * From Users) T Where a in (select a from g)); \r\n select 1  --foo\r\n a --foo",
+        "Sql": "drop table #t; \r\n (select UserName, FirstName, (Select Top 1 ') Select fgd From (' From Users) LastName into #T from (Select * From Users) T Where a in (select a from g)); \r\n select 1  --foo\r\n a --foo",
         "ParseResult": "Valid",
         "Columns": [ "a" ]
     },
@@ -115,15 +115,52 @@
         "Comment": "Multiple valid statements"
     },
     {
-        "Sql": "Select a, d into #t from b; go Select a, d from #t",
-        "ParseResult": "Valid",
-        "Columns": [ "a", "d" ],
-        "Comment": "Multiple valid batches"
+        "Sql": " \r\n ",
+        "ParseResult": "Warning",
+        "Comment": "Whitespace only"
     },
     {
         "Sql": "  ",
         "ParseResult": "Warning",
         "Comment": "Whitespace only"
+    },
+    {
+        "Sql": " /* Something */ ",
+        "ParseResult": "Warning",
+        "Comment": "Comment Only"
+    },
+    {
+        "Sql": " -- Something  ",
+        "ParseResult": "Warning",
+        "Comment": "Comment Only"
+    },
+    {
+        "Sql": " go \r\n ",
+        "Comment": "Multiple batches not supported"
+    },
+    {
+        "Sql": " go ",
+        "Comment": "Multiple batches not supported"
+    },
+    {
+        "Sql": " go /* Something */ ",
+        "Comment": "Multiple batches not supported"
+    },
+    {
+        "Sql": " go -- Something  ",
+        "Comment": "Multiple batches not supported"
+    },
+    {
+        "Sql": "Select a, d into #t from b; go Select a, d from #t",
+        "Comment": "Multiple batches not supported"
+    },
+    {
+        "Sql": "drop table #t; go; \r\n (select UserName, FirstName, (Select Top 1 ') Select fgd From (' From Users) LastName into #T from (Select * From Users) T Where a in (select a from g)); \r\n select 1  --foo\r\n a --foo \r\n from wlekjf",
+        "Comment": "Multiple batches not supported"
+    },
+    {
+        "Sql": "drop table #t; go; \r\n (select UserName, FirstName, (Select Top 1 ') Select fgd From (' From Users) LastName into #T from (Select * From Users) T Where a in (select a from g)); \r\n select 1  --foo\r\n a --foo",
+        "Comment": "Multiple batches not supported"
     },
     { "Sql": "Delete from #t" },
     { "Sql": "Select * From  T" },

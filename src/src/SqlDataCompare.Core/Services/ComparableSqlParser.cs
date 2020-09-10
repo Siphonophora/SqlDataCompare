@@ -34,13 +34,16 @@ namespace SqlDataCompare.Core.Services
 
                 return new ParsedSql(sql, ParseResultValue.Error, "SQL Has Errors: " + sb.ToString());
             }
-            else if (parseResult.Script.Batches[0].Statements[0].Statement == null)
+            else if (parseResult.BatchCount > 1)
             {
-                return new ParsedSql(sql, ParseResultValue.Error, "Not parsable as SQL.");
+                return new ParsedSql(sql, ParseResultValue.Error, "Multiple sql batches are not suported by the template engine. If you need multiple batches, then please provide the last batch which selects results to this app. Then after copying/pasting the template, add the initial batches to the top of the script.");
+            }
+            else if (parseResult.BatchCount == 0 ||
+                parseResult.Script.Batches[0].Statements.Any() == false)
+            {
+                return new ParsedSql(sql, ParseResultValue.Warning, "No SQL Found.");
             }
 
-            // TODO, when do we get multiple batches? When there are GOs? Can we handle multiple
-            // batches (in the output)?
             var batches = parseResult.Script.Batches;
 
             // All sql is safe (no side effects). Only the last statement is a plain sql statement
