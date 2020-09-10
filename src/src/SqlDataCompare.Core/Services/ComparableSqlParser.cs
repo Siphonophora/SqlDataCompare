@@ -135,38 +135,50 @@ namespace SqlDataCompare.Core.Services
                 lastStatement.Tokens.Select(
                     x => $"ID: {x.Id}, Sig {x.IsSignificant}, {x.Type}, {x.Text}, startLoc {x.StartLocation}"));
 
-            var sql = string.Join(
-                string.Empty,
-                parseResult.Script.Tokens.Select(x => x.Text));
+            // the SqlSelectSpecification will be after any CTE. We don't keep getting elements
+            var xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml(lastStatement.Xml);
+            xmlDoc.LoadXml(xmlDoc.GetElementsByTagName("SqlSelectSpecification")[0].OuterXml);
 
-            // Statements can be wrapped in parenthesis. The first select statement is at the depth
-            // of parenthesis we should be checking to find the From statement we care about.
-            var openParen = "(";
-            var closeParen = ")";
-            var select = "TOKEN_SELECT";
-            var from = "TOKEN_FROM";
-
-            Token? insertBeforeToken = null;
-            var parenDepth = 0;
-            var selectParenDepth = -1;
-            foreach (var token in lastStatement.Tokens)
+            foreach (var node in xmlDoc.FirstChild.ChildNodes)
             {
-                if (token.Type == openParen)
+                if (node is XmlElement e && e.LocalName == "SqlQuerySpecification")
                 {
-                    parenDepth++;
-                }
-                else if (token.Type == closeParen)
-                {
-                    parenDepth--;
-                }
-                else if (token.Type == select && selectParenDepth == -1)
-                {
-                    selectParenDepth = parenDepth;
-                }
-                else if (token.Type == from && selectParenDepth == parenDepth)
-                {
-                    insertBeforeToken = token;
+                    xmlDoc.LoadXml(e.OuterXml);
                     break;
+                }
+            }
+            foreach (var node in xmlDoc.FirstChild.ChildNodes)
+            {
+                if (node is XmlElement e && e.LocalName == "SqlFromClause")
+                {
+                    xmlDoc.LoadXml(e.OuterXml);
+                    break;
+                }
+            }
+
+            // If we are currently on a From clause, then we should be able to find the right
+            // location. Otherwise we probably have a select statement without a from.
+            Token? insertBeforeToken = null;
+            if (xmlDoc.FirstChild.LocalName == "SqlFromClause")
+            {
+                var fromLoc = xmlDoc.FirstChild.Attributes.GetNamedItem("Location")
+                    .Value
+                    .Split(new string[] { "((", ",", ")" }, StringSplitOptions.RemoveEmptyEntries);
+                var fromLine = int.Parse(fromLoc[0]);
+                var fromCol = int.Parse(fromLoc[1]);
+
+                var sql = string.Join(
+                    string.Empty,
+                    parseResult.Script.Tokens.Select(x => x.Text));
+
+                foreach (var token in lastStatement.Tokens)
+                {
+                    if (token.StartLocation.LineNumber == fromLine && token.StartLocation.ColumnNumber == fromCol)
+                    {
+                        insertBeforeToken = token;
+                        break;
+                    }
                 }
             }
 

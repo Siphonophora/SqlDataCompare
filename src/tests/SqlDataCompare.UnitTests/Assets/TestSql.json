@@ -2,12 +2,12 @@
     {
         "Sql": "drop table #t; go; \r\n (select UserName, FirstName, (Select Top 1 ') Select fgd From (' From Users) LastName into #T from (Select * From Users) T Where a in (select a from g)); \r\n select 1  --foo\r\n a --foo \r\n from wlekjf",
         "ParseResult": "Valid",
-        "Columns": [ "UserName", "FirstName", "LastName" ]
+        "Columns": [ "a" ]
     },
     {
         "Sql": "drop table #t; go; \r\n (select UserName, FirstName, (Select Top 1 ') Select fgd From (' From Users) LastName into #T from (Select * From Users) T Where a in (select a from g)); \r\n select 1  --foo\r\n a --foo",
         "ParseResult": "Valid",
-        "Columns": [ "UserName", "FirstName", "LastName" ]
+        "Columns": [ "a" ]
     },
     {
         "Sql": "select UserName, FirstName, LastName from Users",
@@ -45,9 +45,9 @@
         "Columns": [ "a", "d" ]
     },
     {
-        "Sql": ";With CTE AS (SELECT TOP (1000) [ABC] FROM [db].[dbo].[tab]) Select ABC From CTE",
+        "Sql": ";With CTE AS (SELECT TOP (1000) [ABC] FROM [db].[dbo].[tab]), CTE2 AS (Select ABC from CTE) Select ABC, (select top 1 b from c) d From CTE2 Where ABC in (select top 1 b from c)",
         "ParseResult": "Valid",
-        "Columns": [ "ABC" ]
+        "Columns": [ "ABC", "d" ]
     },
     {
         "Sql": "Select a,count(*) n from T",
