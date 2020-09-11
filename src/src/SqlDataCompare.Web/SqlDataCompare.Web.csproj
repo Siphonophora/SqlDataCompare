@@ -36,4 +36,10 @@
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" />    
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="wwwroot\css\app.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

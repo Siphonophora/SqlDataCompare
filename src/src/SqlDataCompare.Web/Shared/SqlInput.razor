@@ -1,11 +1,9 @@
-﻿<div class="flex-fill p-2">
-    <h5>@Title</h5>
+﻿<h5>@Title</h5>
 <textarea @bind-value="textInput" @bind-value:event="oninput" @onkeyup="@HandleKeyUp"
           style="height: 15rem; font-family:Consolas" type="text" class="form-control" placeholder="Enter Some sql..." />
 
-    <p>Valid: @parseResult.ParseResult</p>
-    <p>Message: @parseResult.ValidationMessage</p>
-</div>
+<p>Valid: @parseResult.ParseResult</p>
+<p>Message: @parseResult.ValidationMessage</p>
 
 @code{
     private string textInput = string.Empty;

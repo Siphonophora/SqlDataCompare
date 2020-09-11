@@ -2,21 +2,22 @@
 @inject ComprableColumnService columnService
 @inject ComparisonTemplator templator
 
-<h1>Sql Data Compare!</h1>
-<p>1. Enter two queries</p>
-<p>2. Select the Keys</p>
-<p>3. Copy the comparison script.</p>
+<h4><span class="numberCircle">1</span> Add SQL</h4>
 
-<div class="d-flex flex-row">
-    <SqlInput Title="Assert Sql"
-              SqlParsed="(ParsedSql a) => { columnService.UpdateParsedSql(assertSql: a); StateHasChanged(); }" />
-    <SqlInput Title="Test Sql"
-              SqlParsed="(ParsedSql t) => { columnService.UpdateParsedSql(testSql: t); StateHasChanged(); }" />
+<div class="row">
+    <div class="col-xl">
+        <SqlInput Title="Assert Sql"
+                  SqlParsed="(ParsedSql a) => { columnService.UpdateParsedSql(assertSql: a); StateHasChanged(); }" />
+    </div>
+    <div class="col-xl">
+        <SqlInput Title="Test Sql"
+                  SqlParsed="(ParsedSql t) => { columnService.UpdateParsedSql(testSql: t); StateHasChanged(); }" />
+    </div>
 </div>
 
 @if (columnService.Comparable)
 {
-    <h1>Comparable!</h1>
+    <h4><span class="numberCircle">2</span> Select Keys</h4>
     <ColumnTable OrderedColumns="@(() => columnService.ComparableColumns)" Changed="UpdateTemplate" />
 
     @if (needsKeys)
@@ -25,6 +26,7 @@
     }
     else
     {
+        <h4><span class="numberCircle">3</span> Copy Template</h4>
         <SqlTemplate Sql="@templatedSql" />
     }
 }

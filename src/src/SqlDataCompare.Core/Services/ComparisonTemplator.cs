@@ -170,7 +170,7 @@ namespace SqlDataCompare.Core.Services
             body.AppendLine("     RAISERROR(@Message,@Severity,1);");
             body.AppendLine("END CATCH");
 
-            //Drop table first, to clean up issues with changing the query and rerunning in the same session
+            // Produce final result in correct order.
             string result = header.ToString() + dropTable.ToString() + body.ToString();
             return result;
 
@@ -394,9 +394,7 @@ namespace SqlDataCompare.Core.Services
 
             void DropTempTableIfExists(string table)
             {
-                dropTable.AppendLine($"IF OBJECT_ID('tempdb..{table}') IS NOT NULL");
-                dropTable.AppendLine($"     DROP TABLE {table}");
-                dropTable.AppendLine("GO\r\n");
+                dropTable.AppendLine($"IF OBJECT_ID('tempdb..{table}') IS NOT NULL DROP TABLE {table};");
             }
 
             string GetIntoStatements(ParsedSql sql, string intoTable)
