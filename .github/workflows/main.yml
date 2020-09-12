@@ -31,8 +31,8 @@ jobs:
     - name: Add analytics to index.html.
       run: |
        SEARCH="<!--AnalyticsPlaceholder-->"
-       =`cat .github/workflows/analytics.html`
        echo "$SEARCH"
+       REPLACE=`cat .github/workflows/analytics.html`
        echo "$REPLACE"
        echo "s/${SEARCH}/${REPLACE}/g"
        sed -i "s/${SEARCH}/${REPLACE}/g" release/wwwroot/index.html
