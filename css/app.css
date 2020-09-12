@@ -8,6 +8,18 @@ a, .btn-link {
     color: #0366d6;
 }
 
+.numberCircle {
+    border-radius: 10%;
+    /* width: 6em; */
+    /* height: 2em; */
+    padding: 0.5rem;
+    background: #008aff;
+    /* border: 2px solid #666; */
+    color: #f8f9fa;
+    text-align: center;
+    /* font: 1rem Arial, sans-serif; */
+}
+
 .btn-unformatted {
     background: none;
     color: inherit;
