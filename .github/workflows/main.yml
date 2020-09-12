@@ -29,10 +29,9 @@ jobs:
 
     # Add analytics to hosted version only.
     - name: Add analytics to index.html.
-      env:
-        SEARCH="<!--AnalyticsPlaceholder-->"
-        REPLACE=`cat .github/workflows/analytics.html`
       run: |
+       SEARCH="<!--AnalyticsPlaceholder-->"
+       =`cat .github/workflows/analytics.html`
        echo "$SEARCH"
        echo "$REPLACE"
        echo "s/${SEARCH}/${REPLACE}/g"
