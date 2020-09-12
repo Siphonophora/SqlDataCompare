@@ -28,14 +28,15 @@ jobs:
       run: sed -i 's/<base href="\/" \/>/<base href="\/SqlDataCompare\/" \/>/g' release/wwwroot/index.html
 
     # Add analytics to hosted version only.
-    - name: Change base-tag in index.html from / to SqlDataCompare
+    - name: Add analytics to index.html.
       run: |
-       local search="<!--AnalyticsPlaceholder-->"
-       local replace=`cat .github/workflows/analytics.html`
        echo "$search"
        echo "$replace"
        echo "s/${search}/${replace}/g"
        sed -i "s/${search}/${replace}/g" release/wwwroot/index.html
+      env:
+      - search="<!--AnalyticsPlaceholder-->"
+      - replace=`cat .github/workflows/analytics.html`
 
     # add .nojekyll file to tell GitHub pages to not treat this as a Jekyll project. (Allow files and folders starting with an underscore)
     - name: Add .nojekyll file
