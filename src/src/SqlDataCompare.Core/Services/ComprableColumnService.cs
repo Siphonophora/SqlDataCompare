@@ -35,17 +35,9 @@ namespace SqlDataCompare.Core.Services
             AssertParsedSql = assertSql ?? AssertParsedSql;
             TestParsedSql = testSql ?? TestParsedSql;
 
-            if (string.IsNullOrWhiteSpace(AssertParsedSql.Sql) && string.IsNullOrWhiteSpace(TestParsedSql.Sql))
+            if (string.IsNullOrWhiteSpace(AssertParsedSql.Sql) || string.IsNullOrWhiteSpace(TestParsedSql.Sql))
             {
                 ErrorMessage = string.Empty;
-            }
-            else if (string.IsNullOrWhiteSpace(AssertParsedSql.Sql))
-            {
-                ErrorMessage = "Enter assert sql";
-            }
-            else if (string.IsNullOrWhiteSpace(TestParsedSql.Sql))
-            {
-                ErrorMessage = "Enter test sql";
             }
             else if (AssertParsedSql.ParseResult == ParseResultValue.Valid && TestParsedSql.ParseResult == ParseResultValue.Valid)
             {

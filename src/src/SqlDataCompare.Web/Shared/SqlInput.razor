@@ -2,8 +2,18 @@
 <textarea @bind-value="textInput" @bind-value:event="oninput" @onkeyup="@HandleKeyUp"
           style="height: 15rem; font-family:Consolas" type="text" class="form-control" placeholder="Enter Some sql..." />
 
-<p>Valid: @parseResult.ParseResult</p>
-<p>Message: @parseResult.ValidationMessage</p>
+@if (parseResult.ParseResult == ParseResultValue.Error)
+{
+    <div class="alert alert-danger mt-2" role="alert">
+        Error: @parseResult.ValidationMessage
+    </div>
+}
+else if (parseResult.ParseResult == ParseResultValue.Warning)
+{
+    <div class="alert alert-info mt-2" role="alert">
+        @parseResult.ValidationMessage
+    </div>
+}
 
 @code{
     private string textInput = string.Empty;
