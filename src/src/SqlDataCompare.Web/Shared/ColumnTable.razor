@@ -4,7 +4,6 @@
             <tr>
                 <th>Key Name</th>
                 <th>Key</th>
-                @*<th>Column Order</th>*@
                 <th>Sort Descending</th>
             </tr>
 
@@ -21,8 +20,10 @@
                         <Checkbox Value="@col.IsKey"
                                   Update="@(() => UpdateKey(col))" />
                     </td>
-                    @*<td>@col.ColumnOrder</td>*@
-                    <td><input type="checkbox" @bind="@col.SortDescending"></td>
+                    <td>
+                        <Checkbox Value="@col.SortDescending"
+                                  Update="@(() => UpdateSort(col))" />
+                    </td>
                 </tr>
             }
         </table>
@@ -32,7 +33,6 @@
             <tr>
                 <th>Column Name</th>
                 <th>Key</th>
-                @*<th>Column Order</th>*@
                 <th>Sort Descending</th>
             </tr>
 
@@ -49,8 +49,10 @@
                         <Checkbox Value="@col.IsKey"
                                   Update="@(() => UpdateKey(col))" />
                     </td>
-                    <td>@*@col.ColumnOrder*@</td>
-                    <td><input type="checkbox" @bind="@col.SortDescending"></td>
+                    <td>
+                        <Checkbox Value="@col.SortDescending"
+                                  Update="@(() => UpdateSort(col))" />
+                    </td>
                 </tr>
             }
         </table>
@@ -59,11 +61,21 @@
 
 @code{
     [Parameter] public Func<IOrderedEnumerable<ComparableColumn>> OrderedColumns { get; set; }
+
+    /// <summary>
+    /// Action called on any edit.
+    /// </summary>
     [Parameter] public Action Changed { get; set; }
 
     private void UpdateKey(ComparableColumn col)
     {
         col.IsKey = !col.IsKey;
+        Changed.Invoke();
+    }
+
+    private void UpdateSort(ComparableColumn col)
+    {
+        col.SortDescending = !col.SortDescending;
         Changed.Invoke();
     }
 
@@ -76,5 +88,6 @@
         }
 
         col.ColumnOrder += 3 * (moveUp ? -1 : 1);
+        Changed.Invoke();
     }
 }

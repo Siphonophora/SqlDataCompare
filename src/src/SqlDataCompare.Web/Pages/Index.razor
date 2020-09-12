@@ -7,15 +7,15 @@
 <div class="row">
     <div class="col-xl">
         <SqlInput Title="Assert Sql"
-                  SqlParsed="(ParsedSql a) => { columnService.UpdateParsedSql(assertSql: a); StateHasChanged(); }" />
+                  SqlParsed="(ParsedSql a) => { columnService.UpdateParsedSql(assertSql: a); UpdateTemplate(); }" />
     </div>
     <div class="col-xl">
         <SqlInput Title="Test Sql"
-                  SqlParsed="(ParsedSql t) => { columnService.UpdateParsedSql(testSql: t); StateHasChanged(); }" />
+                  SqlParsed="(ParsedSql t) => { columnService.UpdateParsedSql(testSql: t); UpdateTemplate(); }" />
     </div>
 </div>
 
-@if (columnService.Comparable)
+@if (comparable)
 {
     <h4><span class="numberCircle">2</span> Select Keys</h4>
     <ColumnTable OrderedColumns="@(() => columnService.ComparableColumns)" Changed="UpdateTemplate" />
@@ -38,19 +38,27 @@ else
 @code{
     private string templatedSql = string.Empty;
     private bool needsKeys = true;
+    private bool comparable = false;
 
     private void UpdateTemplate()
     {
+        // TODO figure out why state is changed isn't behaving as
+        // expected so we can remove some of these extra calls.
+        comparable = columnService.Comparable;
         if (!columnService.ComparableColumns.Any(x => x.IsKey))
         {
             needsKeys = true;
-            return;
+            StateHasChanged();
+        }
+        else
+        {
+            needsKeys = false;
+            StateHasChanged();
+            templatedSql = templator.Create(columnService.AssertParsedSql,
+                                            columnService.TestParsedSql,
+                                            columnService.ComparableColumns);
+            StateHasChanged();
         }
 
-        needsKeys = false;
-        templatedSql = templator.Create(columnService.AssertParsedSql,
-                                        columnService.TestParsedSql,
-                                        columnService.ComparableColumns);
-        StateHasChanged();
     }
 }

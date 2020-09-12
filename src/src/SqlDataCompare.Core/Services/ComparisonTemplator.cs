@@ -30,6 +30,7 @@ namespace SqlDataCompare.Core.Services
             // TODO sort the keys and columns appropately.
             var keys = comparableColumns.Where(x => x.IsKey).Select(x => x.ColumnName);
             var commaKeys = string.Join(", ", keys);
+            var orderedKeys = string.Join(", ", comparableColumns.Where(x => x.IsKey).Select(x => $"{x.ColumnName} {(x.SortDescending ? "desc" : string.Empty)}"));
             var columns = comparableColumns.Where(x => !x.IsKey).Select(x => x.ColumnName);
             var commaColuns = string.Join(", ", columns);
 
@@ -39,21 +40,38 @@ namespace SqlDataCompare.Core.Services
 
             AddBlockComment(
                 header,
-                "Sql Data Compare",
-                WrapLine("This script compares the results of the two queries below. The first query, called the 'Assert' query is assumed to be correct. The second query, called 'Test' ...."),
+                "Sql Data Comparison Script - https://siphonophora.github.io/SqlDataCompare/",
+                WrapLine("This script compares the results of the two queries below. The first query, called the 'Assert' query is assumed to be correct. The second query, called 'Test' is the new query we are testing. There are two main steps to this comparison:"),
                 string.Empty,
-                "Assert",
+                WrapLine($"  1. First, we check that the key(s) which were defined for this comparison are unique for each row. If this comparison fails, you will recieve an error and the output will show a summary of which key values existed multiple times.", 5),
+                WrapLine($"  2. Once we have verified the keys are properly defined, we compare rows based on the keys. The report will define several output tables", 5),
+                string.Empty,
+                WrapLine($"     {matchedTable,-25} - Rows where all columns are identical."),
+                WrapLine($"     {missingTable,-25} - Rows which exist in 'Assert' but are missing from 'Test'"),
+                WrapLine($"     {extraTable,-25} - Rows which do not exist in 'Assert' but exist in 'Test'"),
+                WrapLine($"     {discrepantTable,-25} - Rows where one or more columns are not equal"),
+                WrapLine($"     {discrepantTable + "__ColumnName",-25} - Rows where a specific column is not equal."),
+                string.Empty,
+                $"Compared Keys: {commaKeys}",
+                string.Empty,
+                "Assert:",
+                "-------",
                 assertSql.Sql,
                 string.Empty,
-                "Test",
+                "Test:",
+                "-----",
                 testSql.Sql);
 
-            header.AppendLine("Declare @VerboseOutput bit = 0; --Set to 1 to see additional output.  \r\n\r\n");
+            dropTable.AppendLine("--Drop all temporary tables used in the script to allow for rerunning the query.");
 
-            AddBlockComment(dropTable, "Drop Tables", WrapLine("Drop all temporary tables used in the script to allow for rerunning the query."));
+            AddBlockComment(
+                body,
+                "User Settings",
+                "Any variables in this section can be edited to adjust the output of the results.",
+                WrapLine("If your queries need to share variables, declare and initalize them here. Additionally, if they require the same temp table, that may be created in this section as well."));
+            body.AppendLine("Declare @VerboseOutput bit = 0; --Set to 1 to see additional output.  \r\n\r\n");
 
-            AddBlockComment(body, "Start of Setup Block", "Scroll down to add 'into' to the selects");
-
+            AddBlockComment(body, "Setup", "Scroll down to add 'into' to the selects");
             body.AppendLine(CreateErrorsTable());
             body.AppendLine(CreateStatsTable(assertTable, testTable));
 
@@ -84,16 +102,16 @@ namespace SqlDataCompare.Core.Services
                 "In this section, we compare the two sets of selected results.");
 
             body.AppendLine(CreateSummaryTable());
-            var outputTables = new List<string>();
+            var outputTables = new List<(string Table, string OrderBy)>();
 
             string assert = "Assert";
             string test = "Test";
 
             DropTempTableIfExists(matchedTable);
-            outputTables.Add(matchedTable);
+            outputTables.Add((matchedTable, orderedKeys));
             body.AppendLine();
             body.AppendLine($"Select {AliasColumns(assert, keys, true)}");
-            body.AppendLineIf(columns.Any(), $", '' [ ] \r\n     , {AliasColumns(assert, columns, true)}");
+            body.AppendLineIf(columns.Any(), $"     , '' [ ] \r\n     , {AliasColumns(assert, columns, true)}");
             body.AppendLine($"Into {matchedTable}");
             body.AppendLine($"From {testTable} {test}                ");
             body.AppendLine($"Join {assertTable} {assert} on {JoinON(assert, test, keys)} ");
@@ -101,7 +119,7 @@ namespace SqlDataCompare.Core.Services
             body.AppendLine();
 
             DropTempTableIfExists(missingTable);
-            outputTables.Add(missingTable);
+            outputTables.Add((missingTable, orderedKeys));
             body.AppendLine();
             body.AppendLine($"Select {AliasColumns(assert, keys, true)}");
             body.AppendLineIf(columns.Any(), $", '' [ ] \r\n     , {AliasColumns(assert, columns)}");
@@ -111,7 +129,7 @@ namespace SqlDataCompare.Core.Services
             body.AppendLine($"Where {test}.{keys.First()} IS NULL");
 
             DropTempTableIfExists(extraTable);
-            outputTables.Add(extraTable);
+            outputTables.Add((extraTable, orderedKeys));
             body.AppendLine();
             body.AppendLine($"Select {AliasColumns(test, keys, true)}");
             body.AppendLineIf(columns.Any(), $", '' [ ] \r\n     , {AliasColumns(test, columns)}");
@@ -124,7 +142,7 @@ namespace SqlDataCompare.Core.Services
             if (columns.Any())
             {
                 DropTempTableIfExists(discrepantTable);
-                outputTables.Add(discrepantTable);
+                outputTables.Add((discrepantTable, orderedKeys));
                 body.AppendLine();
                 body.AppendLine($"Select {AliasColumns(assert, keys, true)}\r\n     , '' [ ] \r\n     , {CompareColumns(assert, test, columns)}");
                 body.AppendLine($"Into {discrepantTable}");
@@ -140,7 +158,8 @@ namespace SqlDataCompare.Core.Services
                     columnDisplay.Insert(0, column);
 
                     DropTempTableIfExists(discrepantDetailTable);
-                    outputTables.Add(discrepantDetailTable);
+                    var desc = comparableColumns.Single(x => x.ColumnName == column).SortDescending ? " desc" : string.Empty;
+                    outputTables.Add((discrepantDetailTable, $"[{assert} {column}]{desc}, [{test} {column}]{desc}"));
                     body.AppendLine();
                     body.AppendLine($"Select { AliasColumns(assert, keys, true)}\r\n     , '' [ ] \r\n     , {CompareColumns(assert, test, columnDisplay.ToArray())}");
                     body.AppendLine($"Into {discrepantDetailTable}");
@@ -155,14 +174,13 @@ namespace SqlDataCompare.Core.Services
                 body.AppendLine("Print('All columns selected are keys, so rows cannot be discrepant. They can only match, be extra or missing')");
             }
 
-            body.AppendLine("Declare @RecordCount int");
-            body.AppendLine(SummarizeOutputs(outputTables, commaKeys));
+            body.AppendLine(SummarizeOutputs(outputTables));
 
             body.AppendLine($"     {SelectTable(assertTable, "Assert Results", commaKeys)}");
             body.AppendLine($"     {SelectTable(testTable, "Test Results", commaKeys)}");
             body.AppendLine("END TRY");
             body.AppendLine("BEGIN CATCH");
-            body.AppendLine("     Select * From #Errors Order By Fatal desc");
+            body.AppendLine($"     Select * From #Errors Order By Fatal desc");
             body.AppendLine($"     {SelectTable(assertTable, "Assert Results", commaKeys)}");
             body.AppendLine($"     {SelectTable(testTable, "Test Results", commaKeys)}");
             body.AppendLine();
@@ -170,12 +188,18 @@ namespace SqlDataCompare.Core.Services
             body.AppendLine("     RAISERROR(@Message,@Severity,1);");
             body.AppendLine("END CATCH");
 
+            // We need the batch seperator in case the user does something like change the primary
+            // keys selected. in this there would be a temp table with the wrong definition in
+            // existence and a single batch would never run.
+            dropTable.AppendLine("GO");
+
             // Produce final result in correct order.
             string result = header.ToString() + dropTable.ToString() + body.ToString();
             return result;
 
             void AddBlockComment(StringBuilder sb, string title, params string[] lines)
             {
+                sb.AppendLine();
                 sb.AppendLine($"/*{new string('-', headerWidth - 2)}");
                 var titlePad = (headerWidth - title.Length) / 2;
                 sb.AppendLine($"{new string(' ', titlePad)}{title}");
@@ -193,17 +217,23 @@ namespace SqlDataCompare.Core.Services
                 return string.Join("\r\n     , ", columns.Select(x => $"{alias}.{x} {(simpleName ? string.Empty : $"[{alias} {x}]")}"));
             }
 
-            string SummarizeOutputs(List<string> outputTables, string commakeys)
+            string SummarizeOutputs(List<(string Table, string OrderBy)> outputTables)
             {
                 var summarize = new StringBuilder();
 
+                AddBlockComment(
+                    summarize,
+                    "Output Results",
+                    WrapLine("This section determines whether the comparison passed or failed. If the comparison failed, all discrepant rows are displayed to the user. "));
+
                 summarize.AppendLine();
-                foreach (var table in outputTables)
+                foreach (var (table, _) in outputTables)
                 {
                     summarize.AppendLine($"Insert Into #Summary (TableName, Records) Values ('{table}',(Select count(*) From {table}))");
                 }
+
                 summarize.AppendLine();
-                summarize.AppendLine($"Select @RecordCount = sum(records) From #Summary Where TableName <> '#Matched'");
+                summarize.AppendLine($"Declare @RecordCount int = (Select sum(records) From #Summary Where TableName <> '#Matched')");
                 summarize.AppendLine($"IF @RecordCount = 0");
                 summarize.AppendLine($"     Select 'Passed' Result");
                 summarize.AppendLine($"ELSE");
@@ -211,12 +241,11 @@ namespace SqlDataCompare.Core.Services
 
                 summarize.AppendLine($"Select * From #Summary");
 
-                foreach (var table in outputTables)
+                foreach (var (table, orderBy) in outputTables)
                 {
-                    summarize.AppendLine($"Select @RecordCount = count(*) From {table}");
-                    summarize.AppendLine($"IF @RecordCount > 0 OR @VerboseOutput = 1");
-
-                    summarize.AppendLine("    " + SelectTable(table, table, commakeys));
+                    summarize.AppendLine($"IF (Select count(*) From {table}) > 0 OR @VerboseOutput = 1");
+                    summarize.AppendLine("    " + SelectTable(table, table, orderBy));
+                    summarize.AppendLine();
                 }
 
                 return summarize.ToString();
@@ -239,7 +268,7 @@ namespace SqlDataCompare.Core.Services
 
             string WhereNotMatch(string aliasA, string aliasB, IEnumerable<string> compareColumns)
             {
-                return string.Join("\r\n  and ", compareColumns.Select(x => $"(({aliasA}.{x} <> {aliasB}.{x}) ".PadRight(70, ' ') + $"OR ({aliasA}.{x} IS NULL and {aliasB}.{x} IS NOT NULL) OR ({aliasA}.{x} IS NOT NULL and {aliasB}.{x} IS NULL))"));
+                return string.Join("\r\n   OR ", compareColumns.Select(x => $"(({aliasA}.{x} <> {aliasB}.{x}) ".PadRight(70, ' ') + $"OR ({aliasA}.{x} IS NULL and {aliasB}.{x} IS NOT NULL) OR ({aliasA}.{x} IS NOT NULL and {aliasB}.{x} IS NULL))"));
             }
 
             static string CompareColumns(string aliasA, string aliasB, IEnumerable<string> compareColumns)
@@ -247,14 +276,8 @@ namespace SqlDataCompare.Core.Services
                 return string.Join("\r\n     , ", compareColumns.Select(x => $"{aliasA}.{x} [{aliasA} {x}]".PadRight(80, ' ') + $", {aliasB}.{x} [{aliasB} {x}]"));
             }
 
-            static string UpdateStat(string table, string stat, string param)
-            {
-                var updateStat = new StringBuilder();
-
-                updateStat.AppendLine($"Update #Stats Set {stat} = {param} where TableName = '{table}'");
-
-                return updateStat.ToString();
-            }
+            static string UpdateStat(string table, string stat, string param) =>
+                $"Update #Stats Set {stat} = {param} where TableName = '{table}'";
 
             static string HaltOnErrors(string assertTable, string testTable, IEnumerable<string> keys)
             {
@@ -271,14 +294,8 @@ namespace SqlDataCompare.Core.Services
                 return halt.ToString();
             }
 
-            static string SelectTable(string table, string label, string? orderBy = null)
-            {
-                var select = new StringBuilder();
-
-                select.AppendLine($"Select '{label}' [{label}], * From {table} {(orderBy == null ? string.Empty : $"Order By {orderBy}")}");
-
-                return select.ToString();
-            }
+            static string SelectTable(string table, string label, string? orderBy = null) =>
+                $"Select '{label}' [{label}], * From {table} {(orderBy == null ? string.Empty : $"Order By {orderBy}")}";
 
             static string IfConditionInsertError(string condition, bool fatal, ErrorType errorType, string message, string extraStatements = null)
             {
@@ -323,7 +340,7 @@ namespace SqlDataCompare.Core.Services
                 stats.AppendLine("     ,DuplicateRecords int null");
                 stats.AppendLine("     ,DuplicateKeys int null");
                 stats.AppendLine("     ,NullKeys int null)");
-                stats.AppendLine("");
+                stats.AppendLine(string.Empty);
                 stats.AppendLine($"Insert Into #Stats (TableName) Values ('{assertTable}')");
                 stats.AppendLine($"Insert Into #Stats (TableName) Values ('{testTable}')");
 
@@ -368,20 +385,22 @@ namespace SqlDataCompare.Core.Services
 
                 stats.AppendLine($";With Duplicatekeys");
                 stats.AppendLine("AS");
-                stats.AppendLine($"(Select {commaKeys}, count(*) n from {table} Group By {commaKeys} Having count(*) > 1)");
+                stats.AppendLine($"(Select {commaKeys}, count(*) [Number of Duplicates] from {table} Group By {commaKeys} Having count(*) > 1)");
                 stats.AppendLine($"Select {duplicateKeys} = count(*) From Duplicatekeys;");
-                stats.AppendLine(IfConditionInsertError($"{duplicateKeys} > 0"
-                                                        , true
-                                                        , ErrorType.Fatal
-                                                        , $"{table} has duplicate keys. Please redefine your keys"
-                                                        , $"Select 'Duplicate Keys for {table}' Label, {commaKeys}, count(*) n from {table} Group By {commaKeys} Having count(*) > 1 Order By {commaKeys}"));
+                stats.AppendLine(IfConditionInsertError(
+                    $"{duplicateKeys} > 0",
+                    true,
+                    ErrorType.Fatal,
+                    $"{table} has duplicate keys. Please redefine your keys",
+                    $"Select 'Duplicate Keys for {table}' Label, {commaKeys}, count(*) n from {table} Group By {commaKeys} Having count(*) > 1 Order By {commaKeys}"));
 
                 stats.AppendLine($"Select {nullKeys} = count(*) From  {table} Where {WhereNull(keys)}; ");
-                stats.AppendLine(IfConditionInsertError($"{nullKeys} > 0"
-                                                        , true
-                                                        , ErrorType.Fatal
-                                                        , $"{table} has null keys. Please redefine your keys or add ISNULL to supply a defualt"
-                                                        , $"Select 'Null Keys for {table}' Label, {commaKeys} From  {table} Where {WhereNull(keys)} Order By {commaKeys}"));
+                stats.AppendLine(IfConditionInsertError(
+                    $"{nullKeys} > 0",
+                    true,
+                    ErrorType.Fatal,
+                    $"{table} has null keys. Please redefine your keys or add ISNULL to supply a defualt",
+                    $"Select 'Null Keys for {table}' Label, {commaKeys} From  {table} Where {WhereNull(keys)} Order By {commaKeys}"));
 
                 stats.AppendLine(UpdateStat(table, "Records", records));
                 stats.AppendLine(UpdateStat(table, "DuplicateRecords", duplicateRecords));
@@ -416,7 +435,7 @@ namespace SqlDataCompare.Core.Services
                 return statements.ToString();
             }
 
-            string WrapLine(string line)
+            string WrapLine(string line, int extraIndent = 0)
             {
                 var sb = new StringBuilder();
                 var wrapped = new StringBuilder();
@@ -426,13 +445,13 @@ namespace SqlDataCompare.Core.Services
                     {
                         sb.AppendLine(wrapped.ToString());
                         wrapped.Clear();
-                        wrapped.Append(new string(' ', indentWidth));
+                        wrapped.Append(new string(' ', indentWidth + extraIndent));
                     }
 
                     wrapped.Append($"{word} ");
                 }
 
-                sb.AppendLine(wrapped.ToString());
+                sb.Append(wrapped.ToString());
 
                 return sb.ToString();
             }
