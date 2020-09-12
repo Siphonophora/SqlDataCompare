@@ -15,10 +15,12 @@
 <div class="row">
     <div class="col-xl">
         <SqlInput Title="Assert Sql"
+                  Description="The query which we assume is correct."
                   SqlParsed="(ParsedSql a) => { columnService.UpdateParsedSql(assertSql: a); UpdateTemplate(); }" />
     </div>
     <div class="col-xl">
         <SqlInput Title="Test Sql"
+                  Description="The new query we want to test."
                   SqlParsed="(ParsedSql t) => { columnService.UpdateParsedSql(testSql: t); UpdateTemplate(); }" />
     </div>
 </div>
