@@ -32,10 +32,11 @@ jobs:
       run: |
        SEARCH="<!--AnalyticsPlaceholder-->"
        echo "$SEARCH"
-       REPLACE=`cat .github/workflows/analytics.html`
+       REPLACE=`cat .github/workflows/analytics.snippet`
        echo "$REPLACE"
        echo "s/${SEARCH}/${REPLACE}/g"
        sed -i "s/${SEARCH}/${REPLACE}/g" release/wwwroot/index.html
+       cat release/wwwroot/index.html
 
     # add .nojekyll file to tell GitHub pages to not treat this as a Jekyll project. (Allow files and folders starting with an underscore)
     - name: Add .nojekyll file
