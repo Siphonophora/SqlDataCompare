@@ -29,14 +29,14 @@ jobs:
 
     # Add analytics to hosted version only.
     - name: Add analytics to index.html.
-      run: |
-       echo "$search"
-       echo "$replace"
-       echo "s/${search}/${replace}/g"
-       sed -i "s/${search}/${replace}/g" release/wwwroot/index.html
       env:
-      - search="<!--AnalyticsPlaceholder-->"
-      - replace=`cat .github/workflows/analytics.html`
+        SEARCH="<!--AnalyticsPlaceholder-->"
+        REPLACE=`cat .github/workflows/analytics.html`
+      run: |
+       echo "$SEARCH"
+       echo "$REPLACE"
+       echo "s/${SEARCH}/${REPLACE}/g"
+       sed -i "s/${SEARCH}/${REPLACE}/g" release/wwwroot/index.html
 
     # add .nojekyll file to tell GitHub pages to not treat this as a Jekyll project. (Allow files and folders starting with an underscore)
     - name: Add .nojekyll file
