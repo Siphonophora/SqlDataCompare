@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using Microsoft.SqlServer.Management.SqlParser.Parser;
@@ -7,7 +8,7 @@ using SqlDataCompare.Core.Models;
 
 namespace SqlDataCompare.Core.Services
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1052:Static holder types should be Static or NotInheritable", Justification = "Used as type parameter.")]
+    [SuppressMessage("Design", "CA1052:Static holder types should be Static or NotInheritable", Justification = "Used as type parameter.")]
     public class ComparisonTemplator
     {
         private enum ErrorType
@@ -36,7 +37,6 @@ namespace SqlDataCompare.Core.Services
 
             var header = new StringBuilder();
             var body = new StringBuilder();
-            var dropTable = new StringBuilder();
 
             AddBlockComment(
                 header,
@@ -62,7 +62,7 @@ namespace SqlDataCompare.Core.Services
                 "-----",
                 testSql.Sql);
 
-            dropTable.AppendLine("--Drop all temporary tables used in the script to allow for rerunning the query.");
+            body.AppendLine("BEGIN TRAN -- Begin a transaction which is rolled back. This is done to guarentee no database changes occur.");
 
             AddBlockComment(
                 body,
@@ -107,7 +107,6 @@ namespace SqlDataCompare.Core.Services
             string assert = "Assert";
             string test = "Test";
 
-            DropTempTableIfExists(matchedTable);
             outputTables.Add((matchedTable, orderedKeys));
             body.AppendLine();
             body.AppendLine($"Select {AliasColumns(assert, keys, true)}");
@@ -118,7 +117,6 @@ namespace SqlDataCompare.Core.Services
             body.AppendLineIf(columns.Any(), $"Where {WhereMatch(assert, test, columns)}");
             body.AppendLine();
 
-            DropTempTableIfExists(missingTable);
             outputTables.Add((missingTable, orderedKeys));
             body.AppendLine();
             body.AppendLine($"Select {AliasColumns(assert, keys, true)}");
@@ -128,7 +126,6 @@ namespace SqlDataCompare.Core.Services
             body.AppendLine($"Left Join {testTable} {test} on {JoinON(assert, test, keys)} ");
             body.AppendLine($"Where {test}.{keys.First()} IS NULL");
 
-            DropTempTableIfExists(extraTable);
             outputTables.Add((extraTable, orderedKeys));
             body.AppendLine();
             body.AppendLine($"Select {AliasColumns(test, keys, true)}");
@@ -141,7 +138,6 @@ namespace SqlDataCompare.Core.Services
 
             if (columns.Any())
             {
-                DropTempTableIfExists(discrepantTable);
                 outputTables.Add((discrepantTable, orderedKeys));
                 body.AppendLine();
                 body.AppendLine($"Select {AliasColumns(assert, keys, true)}\r\n     , '' [ ] \r\n     , {CompareColumns(assert, test, columns)}");
@@ -157,7 +153,6 @@ namespace SqlDataCompare.Core.Services
                     var columnDisplay = columns.Where(x => x != column).ToList();
                     columnDisplay.Insert(0, column);
 
-                    DropTempTableIfExists(discrepantDetailTable);
                     var desc = comparableColumns.Single(x => x.ColumnName == column).SortDescending ? " desc" : string.Empty;
                     outputTables.Add((discrepantDetailTable, $"[{assert} {column}]{desc}, [{test} {column}]{desc}"));
                     body.AppendLine();
@@ -178,23 +173,20 @@ namespace SqlDataCompare.Core.Services
 
             body.AppendLine($"     {SelectTable(assertTable, "Assert Results", commaKeys)}");
             body.AppendLine($"     {SelectTable(testTable, "Test Results", commaKeys)}");
+            body.AppendLine("     ROLLBACK TRAN -- Rollback transaction which surrounds the whole comparison script. This is done to guarentee no database changes occur.");
             body.AppendLine("END TRY");
             body.AppendLine("BEGIN CATCH");
             body.AppendLine($"     Select * From #Errors Order By Fatal desc");
             body.AppendLine($"     {SelectTable(assertTable, "Assert Results", commaKeys)}");
             body.AppendLine($"     {SelectTable(testTable, "Test Results", commaKeys)}");
             body.AppendLine();
+            body.AppendLine("     ROLLBACK TRAN -- Rollback transaction which surrounds the whole comparison script. This is done to guarentee no database changes occur.");
             body.AppendLine("     Declare @Message varchar(255) = ERROR_MESSAGE(), @Severity int = ERROR_Severity();");
             body.AppendLine("     RAISERROR(@Message,@Severity,1);");
             body.AppendLine("END CATCH");
 
-            // We need the batch seperator in case the user does something like change the primary
-            // keys selected. in this there would be a temp table with the wrong definition in
-            // existence and a single batch would never run.
-            dropTable.AppendLine("GO");
-
             // Produce final result in correct order.
-            string result = header.ToString() + dropTable.ToString() + body.ToString();
+            string result = header.ToString() + body.ToString();
             return result;
 
             void AddBlockComment(StringBuilder sb, string title, params string[] lines)
@@ -319,7 +311,6 @@ namespace SqlDataCompare.Core.Services
             {
                 var errors = new StringBuilder();
 
-                DropTempTableIfExists("#Errors");
                 errors.AppendLine("Create Table #Errors ");
                 errors.AppendLine("     (Fatal bit not null");
                 errors.AppendLine("     ,ErrorType varchar(100) null");
@@ -332,7 +323,6 @@ namespace SqlDataCompare.Core.Services
             {
                 var stats = new StringBuilder();
 
-                DropTempTableIfExists("#Stats");
                 stats.AppendLine("Create Table #Stats ");
                 stats.AppendLine("     (TableName varchar(100) not null");
                 stats.AppendLine("     ,DurationMS int null");
@@ -351,7 +341,6 @@ namespace SqlDataCompare.Core.Services
             {
                 var summary = new StringBuilder();
 
-                DropTempTableIfExists("#Summary");
                 summary.AppendLine("Create Table #Summary ");
                 summary.AppendLine("     (TableName varchar(100) not null");
                 summary.AppendLine("     ,Records int not null)");
@@ -411,15 +400,9 @@ namespace SqlDataCompare.Core.Services
                 return result;
             }
 
-            void DropTempTableIfExists(string table)
-            {
-                dropTable.AppendLine($"IF OBJECT_ID('tempdb..{table}') IS NOT NULL DROP TABLE {table};");
-            }
-
             string GetIntoStatements(ParsedSql sql, string intoTable)
             {
                 var statements = new StringBuilder();
-                DropTempTableIfExists(intoTable);
 
                 var param = new ParamNamer(intoTable);
                 string start = param.Name("StartTime");

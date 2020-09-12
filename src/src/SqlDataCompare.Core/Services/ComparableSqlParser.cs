@@ -21,6 +21,8 @@ namespace SqlDataCompare.Core.Services
                 return new ParsedSql(sql, ParseResultValue.Warning, "Sql cannot be empty.");
             }
 
+            sql = sql.Trim();
+
             var parseResult = Parser.Parse(sql);
 
             if (parseResult.Errors.Any())
