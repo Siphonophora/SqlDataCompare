@@ -107,12 +107,12 @@ namespace SqlDataCompare.Core.Services
                                 continue;
                             }
 
-                            return new ParsedSql(sql, ParseResultValue.Error, "Select is not comparable because at least column is unnamed in statement");
+                            return new ParsedSql(sql, ParseResultValue.Error, "Select is not comparable because at least column is unnamed in statement. All columns must be named.");
                         }
                     }
                     else if (node.Name == "SqlSelectStarExpression")
                     {
-                        return new ParsedSql(sql, ParseResultValue.Error, "Select is not comparable because at least one * is used in statement");
+                        return new ParsedSql(sql, ParseResultValue.Error, "Select is not comparable because at least one * is used in statement. Each column must be listed individually.");
                     }
                 }
 
