@@ -93,7 +93,6 @@ namespace SqlDataCompare.Core.Services
             body.AppendLine();
             body.AppendLine(CalculateStats(testTable, keys));
 
-            body.AppendLine(SelectTable("#Stats", "Stats"));
             body.AppendLine(HaltOnErrors(assertTable, testTable, keys));
 
             AddBlockComment(
@@ -171,12 +170,14 @@ namespace SqlDataCompare.Core.Services
 
             body.AppendLine(SummarizeOutputs(outputTables));
 
+            body.AppendLine($"     {SelectTable("#Stats", "Stats")}");
             body.AppendLine($"     {SelectTable(assertTable, "Assert Results", commaKeys)}");
             body.AppendLine($"     {SelectTable(testTable, "Test Results", commaKeys)}");
             body.AppendLine("     ROLLBACK TRAN -- Rollback transaction which surrounds the whole comparison script. This is done to guarentee no database changes occur.");
             body.AppendLine("END TRY");
             body.AppendLine("BEGIN CATCH");
             body.AppendLine($"     Select * From #Errors Order By Fatal desc");
+            body.AppendLine($"     {SelectTable("#Stats", "Stats")}");
             body.AppendLine($"     {SelectTable(assertTable, "Assert Results", commaKeys)}");
             body.AppendLine($"     {SelectTable(testTable, "Test Results", commaKeys)}");
             body.AppendLine();
