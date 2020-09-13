@@ -3,13 +3,11 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
-using Microsoft.SqlServer.Management.SqlParser.Parser;
 using SqlDataCompare.Core.Models;
 
 namespace SqlDataCompare.Core.Services
 {
-    [SuppressMessage("Design", "CA1052:Static holder types should be Static or NotInheritable", Justification = "Used as type parameter.")]
-    public class ComparisonTemplator
+    public static class ComparisonTemplator
     {
         private enum ErrorType
         {
@@ -17,7 +15,7 @@ namespace SqlDataCompare.Core.Services
             Warning,
         }
 
-        public string Create(ParsedSql assertSql, ParsedSql testSql, IEnumerable<ComparableColumn> comparableColumns)
+        public static string Create(ParsedSql assertSql, ParsedSql testSql, IEnumerable<ComparableColumn> comparableColumns)
         {
             var headerWidth = 100;
             var indentWidth = 4;
@@ -28,11 +26,10 @@ namespace SqlDataCompare.Core.Services
             var extraTable = "#Extra";
             var missingTable = "#Missing";
 
-            // TODO sort the keys and columns appropately.
-            var keys = comparableColumns.Where(x => x.IsKey).Select(x => x.ColumnName);
+            var keys = comparableColumns.Where(x => x.IsKey).OrderBy(x => x.ColumnOrder).Select(x => x.ColumnName);
             var commaKeys = string.Join(", ", keys);
-            var orderedKeys = string.Join(", ", comparableColumns.Where(x => x.IsKey).Select(x => $"{x.ColumnName} {(x.SortDescending ? "desc" : string.Empty)}"));
-            var columns = comparableColumns.Where(x => !x.IsKey).Select(x => x.ColumnName);
+            var orderedKeys = string.Join(", ", comparableColumns.Where(x => x.IsKey).OrderBy(x => x.ColumnOrder).Select(x => $"{x.ColumnName} {(x.SortDescending ? "desc" : string.Empty)}"));
+            var columns = comparableColumns.Where(x => !x.IsKey).OrderBy(x => x.ColumnOrder).Select(x => x.ColumnName);
             var commaColuns = string.Join(", ", columns);
 
             var header = new StringBuilder();
@@ -93,7 +90,7 @@ namespace SqlDataCompare.Core.Services
             body.AppendLine();
             body.AppendLine(CalculateStats(testTable, keys));
 
-            body.AppendLine(HaltOnErrors(assertTable, testTable, keys));
+            body.AppendLine(HaltOnErrors());
 
             AddBlockComment(
                 body,
@@ -155,7 +152,7 @@ namespace SqlDataCompare.Core.Services
                     var desc = comparableColumns.Single(x => x.ColumnName == column).SortDescending ? " desc" : string.Empty;
                     outputTables.Add((discrepantDetailTable, $"[{assert} {column}]{desc}, [{test} {column}]{desc}"));
                     body.AppendLine();
-                    body.AppendLine($"Select { AliasColumns(assert, keys, true)}\r\n     , '' [ ] \r\n     , {CompareColumns(assert, test, columnDisplay.ToArray())}");
+                    body.AppendLine($"Select {AliasColumns(assert, keys, true)}\r\n     , '' [ ] \r\n     , {CompareColumns(assert, test, columnDisplay.ToArray())}");
                     body.AppendLine($"Into {discrepantDetailTable}");
                     body.AppendLine($"From {testTable} {test}                ");
                     body.AppendLine($"Join {assertTable} {assert} on {JoinON(assert, test, keys)} ");
@@ -272,7 +269,7 @@ namespace SqlDataCompare.Core.Services
             static string UpdateStat(string table, string stat, string param) =>
                 $"Update #Stats Set {stat} = {param} where TableName = '{table}'";
 
-            static string HaltOnErrors(string assertTable, string testTable, IEnumerable<string> keys)
+            static string HaltOnErrors()
             {
                 var halt = new StringBuilder();
 
@@ -290,7 +287,7 @@ namespace SqlDataCompare.Core.Services
             static string SelectTable(string table, string label, string? orderBy = null) =>
                 $"Select '{label}' [{label}], * From {table} {(orderBy == null ? string.Empty : $"Order By {orderBy}")}";
 
-            static string IfConditionInsertError(string condition, bool fatal, ErrorType errorType, string message, string extraStatements = null)
+            static string IfConditionInsertError(string condition, bool fatal, ErrorType errorType, string message, string? extraStatements = null)
             {
                 var conditionalInsert = new StringBuilder();
 
@@ -303,6 +300,7 @@ namespace SqlDataCompare.Core.Services
                 {
                     conditionalInsert.AppendLine(extraStatements);
                 }
+
                 conditionalInsert.AppendLine("End");
 
                 return conditionalInsert.ToString();
@@ -435,7 +433,7 @@ namespace SqlDataCompare.Core.Services
                     wrapped.Append($"{word} ");
                 }
 
-                sb.Append(wrapped.ToString());
+                sb.Append(wrapped);
 
                 return sb.ToString();
             }

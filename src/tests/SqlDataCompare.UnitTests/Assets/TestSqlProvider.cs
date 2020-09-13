@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -11,6 +12,7 @@ using SqlDataCompare.Core.Enums;
 
 namespace SqlDataCompare.UnitTests.Assetts
 {
+    [SuppressMessage("Design", "CA1812:Class is apparently never instantiated", Justification = "Used in test attributes.")]
     internal class TestSqlProvider : IEnumerable
     {
         public IEnumerator GetEnumerator()

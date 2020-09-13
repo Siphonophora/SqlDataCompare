@@ -38,19 +38,12 @@ namespace SqlDataCompare.UnitTests
         [Test]
         public void Template_WithOneKey_IsValidSql()
         {
-            var sut = new ComparisonTemplator();
-
             if (actualResult.ParseResult == ParseResultValue.Valid)
             {
                 var cols = actualResult.ColumnNames.Select(x => new ComparableColumn(x, 1)).ToList();
                 cols.First().IsKey = true;
 
-                if (!cols.Any(x => x.IsKey))
-                {
-                    var a = 1;
-                }
-
-                var template = sut.Create(actualResult, actualResult, cols);
+                var template = ComparisonTemplator.Create(actualResult, actualResult, cols);
                 Assert.AreEqual(0, Parser.Parse(template).Errors.Count());
             }
         }
@@ -58,14 +51,12 @@ namespace SqlDataCompare.UnitTests
         [Test]
         public void Template_WithAllKeys_IsValidSql()
         {
-            var sut = new ComparisonTemplator();
-
             if (actualResult.ParseResult == ParseResultValue.Valid)
             {
                 var cols = actualResult.ColumnNames.Select(x => new ComparableColumn(x, 1)).ToList();
                 cols.ForEach(x => x.IsKey = true);
 
-                var template = sut.Create(actualResult, actualResult, cols);
+                var template = ComparisonTemplator.Create(actualResult, actualResult, cols);
                 Assert.AreEqual(0, Parser.Parse(template).Errors.Count());
             }
         }

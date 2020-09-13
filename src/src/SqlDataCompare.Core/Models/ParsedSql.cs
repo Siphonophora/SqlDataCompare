@@ -42,16 +42,24 @@ namespace SqlDataCompare.Core.Models
 
         public IEnumerable<string> ColumnNames => columnNames.AsReadOnly();
 
+        public static bool operator ==(ParsedSql left, ParsedSql right) => left.Equals(right);
+
+        public static bool operator !=(ParsedSql left, ParsedSql right) => !(left == right);
+
         /// <summary>
-        /// TODO unit test for single # in param
+        /// Returns <see cref="Sql"/> with 'Into #Table' added at the appropriate point.
         /// </summary>
-        /// <param name="intoTable"></param>
-        /// <returns></returns>
         public string GetSqlWithInto(string intoTable)
         {
+            intoTable = intoTable ?? throw new ArgumentNullException(nameof(intoTable));
+
             if (ParseResult != ParseResultValue.Valid)
             {
                 throw new InvalidOperationException($"Unable to produce for sql with a parse result of: {ParseResult}");
+            }
+            else if (!intoTable.StartsWith('#') || intoTable.LastIndexOf('#') > 0)
+            {
+                throw new InvalidOperationException($"The provided table name must be a local temp table. Not a real table or global temp table: {intoTable}");
             }
 
             return Sql.Insert(IntoIndex, $"{Environment.NewLine}Into {intoTable}{Environment.NewLine}");

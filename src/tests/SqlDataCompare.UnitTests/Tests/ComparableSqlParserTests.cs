@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.SqlServer.Management.SqlParser.Parser;
-using Microsoft.SqlServer.Management.SqlParser.SqlCodeDom;
 using NUnit.Framework;
 using SqlDataCompare.Core.Enums;
 using SqlDataCompare.Core.Models;

@@ -27,7 +27,6 @@ namespace SqlDataCompare.Core.Services
 
             if (parseResult.Errors.Any())
             {
-                // TODO, report the errors?
                 var sb = new StringBuilder();
                 foreach (var error in parseResult.Errors)
                 {
@@ -73,9 +72,9 @@ namespace SqlDataCompare.Core.Services
                 {
                     xmlDoc.LoadXml(xmlDoc.GetElementsByTagName("SqlSelectSpecification")[0].OuterXml);
                 }
-                catch
+                catch (NullReferenceException ex)
                 {
-                    return new ParsedSql(sql, ParseResultValue.Error, "Unable to find a select specification. Shouldn't be possible Please report this error if it occurs");
+                    return new ParsedSql(sql, ParseResultValue.Error, $"Unable to find a select specification. Shouldn't be possible Please report this error if it occurs. Message: {ex.Message}");
                 }
 
                 var select = xmlDoc.GetElementsByTagName("SqlSelectClause");
@@ -153,6 +152,7 @@ namespace SqlDataCompare.Core.Services
                     break;
                 }
             }
+
             foreach (var node in xmlDoc.FirstChild.ChildNodes)
             {
                 if (node is XmlElement e && e.LocalName == "SqlFromClause")
@@ -373,13 +373,15 @@ namespace SqlDataCompare.Core.Services
 
         private static bool TryParseFirstTagAttribute(XmlDocument doc, string tag, string attribute, out string value)
         {
-            value = doc.GetElementsByTagName(tag)[0]?.Attributes[attribute]?.Value;
+            value = string.Empty;
+            var tagVal = doc.GetElementsByTagName(tag)[0]?.Attributes[attribute]?.Value;
 
-            if (value == null)
+            if (tagVal == null)
             {
                 return false;
             }
 
+            value = tagVal;
             return true;
         }
     }

@@ -1,6 +1,5 @@
 ﻿@page "/"
 @inject ComprableColumnService columnService
-@inject ComparisonTemplator templator
 
 <h4 class="mt-4 mb-4"><span class="numberCircle mr-3">1</span>Add SQL</h4>
 <p>
@@ -78,9 +77,10 @@ else if (string.IsNullOrWhiteSpace(columnService.ErrorMessage) == false)
         {
             needsKeys = false;
             StateHasChanged();
-            templatedSql = templator.Create(columnService.AssertParsedSql,
-                                            columnService.TestParsedSql,
-                                            columnService.ComparableColumns);
+            templatedSql = ComparisonTemplator.Create(
+                columnService.AssertParsedSql,
+                columnService.TestParsedSql,
+                columnService.ComparableColumns);
             StateHasChanged();
         }
 
