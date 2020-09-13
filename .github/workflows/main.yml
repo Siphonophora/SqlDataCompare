@@ -19,6 +19,9 @@ jobs:
       with:
         dotnet-version: 3.1
 
+    - name: Run Unit Tests
+      run: dotnet test src/
+
     # publishes Blazor project to the release-folder
     - name: Publish .NET Core Project
       run: dotnet publish src/src/SqlDataCompare.Web/SqlDataCompare.Web.csproj -c Release -o release --nologo
