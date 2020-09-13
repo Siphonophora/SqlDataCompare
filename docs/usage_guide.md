@@ -68,7 +68,10 @@ From SciFiBooks
  ![results](book_query_in_app.PNG)
 
 5. Copy the comparison script.
-6. Run the query, which produces the output below.
+
+ ![results](book_query_in_app_copy.PNG)
+
+6. Run the query in the test database. The output below will be produced.
 
 As we can see, the query has correctly found the following:
 * 3 rows are identical.
@@ -85,7 +88,7 @@ Here are a few more advanced considerations.
 
 ### Key Selection
 
-When choosing keys, you must pick at least one key and the key(s) you choose must be uniquely represent a row of the results. Once you met this requirement you can still select *more* columns as keys. 'Over defining' the keys can substantially alter the results of the comparison. If we take the book query above, and compare using Id, or Auhtor and ID we get different results. As [discussed below](#comparing-many-parameterized-query-results), adding the extra key is equivelent to comparing the results of querying for each author one at a time. 
+When choosing keys, you must pick at least one key and the key(s) you choose must be uniquely represent a row of the results. Once you met this requirement you can still select *more* columns as keys. 'Over defining' the keys can substantially alter the results of the comparison. This is particularly true when working on queries with complex joins. If we take the book query above, and compare using Id, or Auhtor and ID we get different results. As [discussed below](#comparing-many-parameterized-query-results), adding the extra key is equivelent to comparing the results of querying for each author one at a time. 
 
 In the results, we can see that we now have more missing and extra columns. Discrepancies only show up where the author matches, as well as the key.
 
@@ -126,7 +129,7 @@ Several temp table names are reserved for use by the app.
 
 ### Parameterized Queries
 
-If paramaterized queries share the same parameter names, you can paste the parameter declarations into the template after it is created. There is a section at the top of the template for this purpose. Which makes it easy to find and change the parameter as needed.
+If paramaterized queries share the same parameter names, you can paste the parameter declarations into the template after it is created. There is a section at the top of the template for this purpose. This makes it easier to find and change the parameter as needed, than if you include it in the `Assert` or `Test` sql.
 
 ### Comparing Many Parameterized Query Results
 
@@ -147,7 +150,7 @@ From SciFiBooks
 Where Author = @Author
 ```
 
-We can modify the queries to allow us to the output of this query, for every value of `@Author` that returns results. We do this by removing the parameter(s) and instead adding them to the select. We then add the parameters to the beginning of the list of keys, so we now have `Author, Id` as keys. If your tables **a very large** you may want to be cautious about taking this approach. Another alternative would be to create a temp table with a subset of authors to test, and add `where Author in (Select Author from #TestAuthors)` to the query.
+We can modify the queries to allow us to simulate the output of this query for every value of `@Author` that returns results. We do this by removing the parameter(s) and instead adding them to the select ed colums. We then also add the parameters to the beginning of the list of keys, so we now have `Author, Id` as keys. If your tables **are very large** you may want to be cautious about taking this approach from a performance perspective. A more performant option might be to create a temp table with a subset of authors to test, and add `where Author in (Select Author from #TestAuthors)` to the query.
 
 ``` sql
 -- Assert
@@ -164,6 +167,6 @@ This yields quite a different result from the Getting Started example above, whe
 
 ### Stored Procedures
 
-This tool does not directly support stored procedures. However, you can take the code from the stored procedures and running it as a paramaterized query.
+This tool does not directly support stored procedures. However, you can take the code from the stored procedures and run it as a [paramaterized query](#parameterized-queries).
 
 [webapp]: https://siphonophora.github.io/SqlDataCompare/

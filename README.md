@@ -1,8 +1,8 @@
 - [Sql Data Compare](#sql-data-compare)
-- [Using the App](#using-the-app)
-- [Privacy and Security](#privacy-and-security)
-- [Support](#support)
-- [Requirements](#requirements)
+  - [Using the App](#using-the-app)
+  - [Privacy and Security](#privacy-and-security)
+  - [Support](#support)
+  - [Requirements](#requirements)
 
 # Sql Data Compare
 
@@ -14,20 +14,20 @@ The script will produce a report like the one below, if all the rows are identic
 
  ![results](docs/book_comparison_passing.PNG)
 
-# Using the App
+## Using the App
 
 Instructions for using the app can be found in the 
 [Usage Guide](docs/usage_guide.md).
 
-# Privacy and Security
+## Privacy and Security
 
 The [Privacy and Security](docs/privacy_security.md) page discusses safety of the app and the generated templates.
 
-# Support
+## Support
 
 If you are having any issue with the app, have questions, or would like to request a feature, then please open an issue.
 
-# Requirements
+## Requirements
 
 The [web app][webapp] should run on any modern browser, except Internet Explorer. 
 
