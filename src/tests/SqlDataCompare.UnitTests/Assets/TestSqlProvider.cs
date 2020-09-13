@@ -17,9 +17,11 @@ namespace SqlDataCompare.UnitTests.Assetts
     {
         public IEnumerator GetEnumerator()
         {
+            // TODO, test to ensure there are not begin, commit or rollback tran statemetns.
+
             var options = new JsonSerializerOptions();
             options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-            var tests = JsonSerializer.Deserialize<List<TestSql>>(File.ReadAllText("Assets\\TestSql.json"), options);
+            var tests = JsonSerializer.Deserialize<List<TestSql>>(File.ReadAllText("Assets/TestSql.json"), options);
 
             return tests.Select(x => new object[] { x.ParseResult, x.Comment, x.Sql, x.Columns }).GetEnumerator();
         }
