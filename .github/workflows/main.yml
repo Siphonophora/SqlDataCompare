@@ -27,8 +27,8 @@ jobs:
       run: dotnet publish src/src/SqlDataCompare.Web/SqlDataCompare.Web.csproj -c Release -o release --nologo
     
     # changes the base-tag in index.html from '/' to 'SqlDataCompare' to match GitHub Pages repository subdirectory
-    - name: Change base-tag in index.html from / to SqlDataCompare
-      run: sed -i 's/<base href="\/" \/>/<base href="\/SqlDataCompare\/" \/>/g' release/wwwroot/index.html
+    #- name: Change base-tag in index.html from / to SqlDataCompare
+    #  run: sed -i 's/<base href="\/" \/>/<base href="\/SqlDataCompare\/" \/>/g' release/wwwroot/index.html
 
     # Add analytics to hosted version only. Note sed allows any delimter, thus the *. Used backslash to escape quotes in analytics snippet.
     - name: Add analytics to index.html.
