@@ -169,4 +169,4 @@ This yields quite a different result from the Getting Started example above, whe
 
 This tool does not directly support stored procedures. However, you can take the code from the stored procedures and run it as a [paramaterized query](#parameterized-queries).
 
-[webapp]: https://siphonophora.github.io/SqlDataCompare/
+[webapp]: https://sqldatacompare.mjconrad.com/

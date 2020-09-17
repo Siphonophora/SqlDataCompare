@@ -36,4 +36,4 @@ The SQL scripts produced work with:
 * Azure SQL should work as well.
 
 
-[webapp]: https://siphonophora.github.io/SqlDataCompare/
+[webapp]: https://sqldatacompare.mjconrad.com/

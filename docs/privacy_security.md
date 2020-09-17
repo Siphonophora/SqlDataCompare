@@ -24,4 +24,4 @@ As a rule, taking code off the internet and running it on your own systems is no
 
 Because this app does not do any other logging, Google Analytics is used on the [hosted version][webapp] to track usage data.
 
-[webapp]: https://siphonophora.github.io/SqlDataCompare/
+[webapp]: https://sqldatacompare.mjconrad.com/
