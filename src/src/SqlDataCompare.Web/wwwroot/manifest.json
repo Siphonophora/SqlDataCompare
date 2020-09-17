@@ -1,7 +1,7 @@
 {
     "name": "Sql Data Compare",
     "short_name": "Sql Data Compare",
-    "start_url": "./",
+    "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#03173d",
