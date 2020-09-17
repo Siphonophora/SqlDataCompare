@@ -1,15 +1,21 @@
-﻿<nav class="navbar navbar-expand-lg navbar-light bg-light">
+﻿@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
     <a class="navbar-brand" href="">Sql Data Compare</a>
     <button class="navbar-toggler" @onclick="@(() => collapseNavMenu = !collapseNavMenu)">
         <span class="navbar-toggler-icon"></span>
     </button>
     <div class="@NavMenuCssClass">
         <ul class="navbar-nav mr-auto">
-            <li class="nav-item">
-                <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                    Home
-                </NavLink>
-            </li>
+            @if (bool.Parse(Configuration["ShowBlogLink"]))
+            {
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="https://mjconrad.com">
+                        Blog
+                    </NavLink>
+                </li>
+            }
             <li class="nav-item">
                 <NavLink class="nav-link" href="https://github.com/Siphonophora/SqlDataCompare/blob/master/docs/usage_guide.md">
                     Usage Guide
