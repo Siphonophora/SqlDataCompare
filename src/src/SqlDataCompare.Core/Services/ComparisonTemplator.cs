@@ -37,7 +37,7 @@ namespace SqlDataCompare.Core.Services
 
             AddBlockComment(
                 header,
-                "Sql Data Comparison Script - https://siphonophora.github.io/SqlDataCompare/",
+                "Sql Data Comparison Script - https://sqldatacompare.mjconrad.com/",
                 WrapLine("This script compares the results of the two queries below. The first query, called the 'Assert' query is assumed to be correct. The second query, called 'Test' is the new query we are testing. There are two main steps to this comparison:"),
                 string.Empty,
                 WrapLine($"  1. First, we check that the key(s) which were defined for this comparison are unique for each row. If this comparison fails, you will recieve an error and the output will show a summary of which key values existed multiple times.", 5),
