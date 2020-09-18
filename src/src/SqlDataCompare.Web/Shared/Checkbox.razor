@@ -1,0 +1,13 @@
+﻿@if (Value)
+{
+    <input type="checkbox" checked @onchange="Update" />
+}
+else
+{
+    <input type="checkbox" @onchange="Update" />
+}
+
+@code{
+    [Parameter] public bool Value { get; set; }
+    [Parameter] public EventCallback Update { get; set; }
+}

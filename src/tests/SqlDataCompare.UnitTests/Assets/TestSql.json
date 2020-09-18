@@ -1,0 +1,191 @@
+[
+    {
+        "Sql": "drop table #t; \r\n (select UserName, FirstName, (Select Top 1 ') Select fgd From (' From Users) LastName into #T from (Select * From Users) T Where a in (select a from g)); \r\n select 1  --foo\r\n a --foo \r\n from wlekjf",
+        "ParseResult": "Valid",
+        "Columns": [ "a" ]
+    },
+    {
+        "Sql": "drop table #t; \r\n (select UserName, FirstName, (Select Top 1 ') Select fgd From (' From Users) LastName into #T from (Select * From Users) T Where a in (select a from g)); \r\n select 1  --foo\r\n a --foo",
+        "ParseResult": "Valid",
+        "Columns": [ "a" ]
+    },
+    {
+        "Sql": "select UserName, FirstName, LastName from Users",
+        "ParseResult": "Valid",
+        "Columns": [ "UserName", "FirstName", "LastName" ]
+    },
+    {
+        "Sql": "select UserName, FirstName, LastName from (Select * From Users) T",
+        "ParseResult": "Valid",
+        "Columns": [ "UserName", "FirstName", "LastName" ]
+    },
+    {
+        "Sql": "Select a, d",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "d" ]
+    },
+    {
+        "Sql": "Select d, a",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "d" ]
+    },
+    {
+        "Sql": "Select a, a d",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "d" ]
+    },
+    {
+        "Sql": "Select a, a as d",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "d" ]
+    },
+    {
+        "Sql": "Select T.a,T.a d from Tab T",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "d" ]
+    },
+    {
+        "Sql": ";With CTE AS (SELECT TOP (1000) [ABC] FROM [db].[dbo].[tab]), CTE2 AS (Select ABC from CTE) Select ABC, (select top 1 b from c) d From CTE2 Where ABC in (select top 1 b from c)",
+        "ParseResult": "Valid",
+        "Columns": [ "ABC", "d" ]
+    },
+    {
+        "Sql": "Select a,count(*) n from T",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "n" ]
+    },
+    {
+        "Sql": "/* stuff */ Select a, d from b",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "d" ]
+    },
+    {
+        "Sql": "SELECT Program,[AlertType] ,[AlertStatus] FROM [Info].[dbo].[AlertQueue]",
+        "ParseResult": "Valid",
+        "Columns": [ "Program", "AlertType", "AlertStatus" ]
+    },
+    {
+        "Sql": "Select a,(Select top 1 g from G) TopG From T",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "TopG" ]
+    },
+    {
+        "Sql": "Select a, b From (Select a, b From c )T",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "b" ]
+    },
+    {
+        "Sql": "Select a, b From T Where a in (select a from g)",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "b" ]
+    },
+    {
+        "Sql": ";WITH cte_sales_amounts (staff, sales, year) AS ( SELECT first_name + ' ' + last_name, SUM(quantity * list_price * (1 - discount)), YEAR(order_date) FROM sales.orders o INNER JOIN sales.order_items i ON i.order_id = o.order_id INNER JOIN sales.staffs s ON s.staff_id =  o.staff_id GROUP BY first_name + ' ' + last_name, year(order_date) ) SELECT staff, sales FROM cte_sales_amounts WHERE year = 2018;",
+        "ParseResult": "Valid",
+        "Columns": [ "staff", "sales" ]
+    },
+    {
+        "Sql": "Select a, d into #t from b; Select a, d from #t",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "d" ],
+        "Comment": "Multiple valid statements"
+    },
+    {
+        "Sql": "Delete from #t; Select a, d from #t",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "d" ],
+        "Comment": "Multiple valid statements"
+    },
+    {
+        "Sql": "Drop table #t; Select a, d from #t",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "d" ],
+        "Comment": "Multiple valid statements"
+    },
+    {
+        "Sql": "INSERT INTO #Alert_ProgramsTemp ([Program]) VALUES('s'); Select a, d from #t",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "d" ],
+        "Comment": "Multiple valid statements"
+    },
+    {
+        "Sql": "UPDATE #Alert_ProgramsTemp SET [Program] = 'b' WHERE 1 = 0; Select a, d from #t",
+        "ParseResult": "Valid",
+        "Columns": [ "a", "d" ],
+        "Comment": "Multiple valid statements"
+    },
+    {
+        "Sql": " \r\n ",
+        "ParseResult": "Warning",
+        "Comment": "Whitespace only"
+    },
+    {
+        "Sql": "  ",
+        "ParseResult": "Warning",
+        "Comment": "Whitespace only"
+    },
+    {
+        "Sql": " /* Something */ ",
+        "ParseResult": "Warning",
+        "Comment": "Comment Only"
+    },
+    {
+        "Sql": " -- Something  ",
+        "ParseResult": "Warning",
+        "Comment": "Comment Only"
+    },
+    {
+        "Sql": " go \r\n ",
+        "Comment": "Multiple batches not supported"
+    },
+    {
+        "Sql": " go ",
+        "Comment": "Multiple batches not supported"
+    },
+    {
+        "Sql": " go /* Something */ ",
+        "Comment": "Multiple batches not supported"
+    },
+    {
+        "Sql": " go -- Something  ",
+        "Comment": "Multiple batches not supported"
+    },
+    {
+        "Sql": "Select a, d into #t from b; go Select a, d from #t",
+        "Comment": "Multiple batches not supported"
+    },
+    {
+        "Sql": "drop table #t; go; \r\n (select UserName, FirstName, (Select Top 1 ') Select fgd From (' From Users) LastName into #T from (Select * From Users) T Where a in (select a from g)); \r\n select 1  --foo\r\n a --foo \r\n from wlekjf",
+        "Comment": "Multiple batches not supported"
+    },
+    {
+        "Sql": "drop table #t; go; \r\n (select UserName, FirstName, (Select Top 1 ') Select fgd From (' From Users) LastName into #T from (Select * From Users) T Where a in (select a from g)); \r\n select 1  --foo\r\n a --foo",
+        "Comment": "Multiple batches not supported"
+    },
+    { "Sql": "Delete from #t" },
+    { "Sql": "Select * From  T" },
+    { "Sql": "Select * From  T Where A = @a" },
+    { "Sql": "Select * From #T" },
+    { "Sql": "Select * From Temp" },
+    { "Sql": "Select * Into #t From Temp" },
+    { "Sql": "Delete from #t" },
+    { "Sql": "Drop table #t" },
+    { "Sql": "INSERT INTO #Alert_ProgramsTemp ([Program]) VALUES('s')" },
+    { "Sql": "UPDATE #Alert_ProgramsTemp SET [Program] = 'b' WHERE 1 = 0" },
+    { "Sql": "Delete from t" },
+    { "Sql": "Select * Into t From Temp" },
+    { "Sql": "Drop Table T" },
+    { "Sql": "INSERT INTO [dbo].[Alert_ProgramsTemp] ([Program]) VALUES('s')" },
+    { "Sql": "UPDATE [dbo].[Alert_ProgramsTemp] SET [Program] = 'b' WHERE 1 = 0" },
+    { "Sql": "Delete from" },
+    { "Sql": "Select * InFrom Temp" },
+    { "Sql": "DropTable T" },
+    {
+        "Sql": "Delete From  T; Select a from b; ",
+        "Comment": "Multiple invalid statements"
+    },
+    {
+        "Sql": "Select a from b; Delete From  T",
+        "Comment": "Multiple invalid statements"
+    }
+]

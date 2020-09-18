@@ -1,0 +1,49 @@
+﻿<h5>@Title</h5>
+<p>@Description</p>
+<textarea @bind-value="textInput" @bind-value:event="oninput" @onkeyup="@HandleKeyUp"
+          style="height: 15rem; font-family:Consolas" type="text" class="form-control" placeholder="Enter Some sql..." />
+
+@if (parseResult.ParseResult == ParseResultValue.Error)
+{
+    <div class="alert alert-danger mt-2" role="alert">
+        Error: @parseResult.ValidationMessage
+    </div>
+}
+else if (parseResult.ParseResult == ParseResultValue.Warning)
+{
+    <div class="alert alert-info mt-2" role="alert">
+        @parseResult.ValidationMessage
+    </div>
+}
+
+@code{
+    private string textInput = string.Empty;
+    private ParsedSql parseResult = new ParsedSql(string.Empty, ParseResultValue.Warning, "Enter Some SQL");
+    private System.Timers.Timer debounceTimer = new System.Timers.Timer(300);
+
+    [Parameter] public string Title { get; set; } = string.Empty;
+    [Parameter] public string Description { get; set; } = string.Empty;
+    [Parameter] public Action<ParsedSql> SqlParsed { get; set; }
+
+    protected override void OnInitialized()
+    {
+        debounceTimer.Elapsed += OnUserFinish;
+        debounceTimer.AutoReset = false;
+    }
+
+    private void HandleKeyUp(KeyboardEventArgs e)
+    {
+        debounceTimer.Stop();
+        debounceTimer.Start();
+    }
+
+    private void OnUserFinish(Object source, System.Timers.ElapsedEventArgs e)
+    {
+        InvokeAsync(() =>
+        {
+            parseResult = ComparableSqlParser.ParseAndValidate(textInput);
+            SqlParsed.Invoke(parseResult);
+            StateHasChanged();
+        });
+    }
+}
