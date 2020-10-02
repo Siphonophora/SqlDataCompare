@@ -18,7 +18,7 @@ You are, of course, welcome to run the application locally on your own machine.
 As a rule, taking code off the internet and running it on your own systems is not a great idea. This utility does two things to help ensure that the templates it produces are safe and trustworthy. 
 
 1. The first, and simplest to verify, is that the whole template is wrapped in a transaction that is rolled back. You can see the script begins with `BEGIN TRAN` and ends with `ROLLBACK TRAN`. Because there is no `COMMIT TRAN` anywhere in the output script, you can be confident that no perminent changes could happen as a result of running the script.
-2. The utility attempts to detect any sql which has side effects. For example, it checks for attemps to insert, update or delete to real tables or DML statements that would change the database itself. When these statements are encountered, the utility will output a warning and will not produce a script. On the other hand, it is allowable to create and work with temp tables in the template.
+2. The utility attempts to detect any sql which has side effects. For example, it checks for attemps to insert, update or delete to real tables or DDL statements that would change the database itself. When these statements are encountered, the utility will output a warning and will not produce a script. On the other hand, it is allowable to create and work with temp tables in the template.
 
 ## Analytics
 
