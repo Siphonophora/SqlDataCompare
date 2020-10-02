@@ -5,7 +5,7 @@
 
 # Privacy and Security
 
-Below are a few notes on privacey and security related to using this app.
+Below are a few notes on privacy and security related to using this app.
 
 ## Your SQL never leaves your browser.
 
